@@ -1,0 +1,18 @@
+<%- | String $listen_addr, Array[String] $appsec_configs | -%>
+# #####################################################################
+# ACHTUNG: Diese Datei wird von Puppet verwaltet!
+# Manuelle Aenderungen werden beim naechsten Puppet-Lauf ueberschrieben.
+# Aenderungen bitte im Puppet-Modul 'crowdsec' vornehmen.
+#
+# WARNING: This file is managed by Puppet.
+# DO NOT EDIT manually - changes will be overwritten on the next Puppet run.
+# #####################################################################
+source: appsec
+listen_addr: <%= $listen_addr %>
+path: /
+appsec_configs:
+<% $appsec_configs.each |String $appsec_config| { -%>
+  - <%= $appsec_config %>
+<% } -%>
+labels:
+  type: appsec

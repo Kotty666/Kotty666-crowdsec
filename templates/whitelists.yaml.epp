@@ -1,0 +1,13 @@
+<%- | Array[String] $whitelists | -%>
+# #####################################################################
+# ACHTUNG: Diese Datei wird von Puppet verwaltet!
+# Manuelle Aenderungen werden beim naechsten Puppet-Lauf ueberschrieben.
+# Aenderungen bitte im Puppet-Modul 'crowdsec' vornehmen.
+#
+# WARNING: This file is managed by Puppet.
+# DO NOT EDIT manually - changes will be overwritten on the next Puppet run.
+# #####################################################################
+whitelists:
+<% $whitelists.each |$cidr| { -%>
+  - <%= $cidr %>
+<% } -%>

@@ -1,0 +1,29 @@
+---
+# nodes/openresty-proxy-01.example.com.yaml
+# Remote OpenResty bouncer that talks to the central CrowdSec LAPI server.
+# The existing OpenResty/Lua profile should include the CrowdSec Lua hook;
+# this module manages the bouncer package and /etc/crowdsec/bouncers config.
+
+classes:
+  include:
+    - crowdsec::repo
+    - crowdsec::bouncer::openresty
+
+crowdsec::bouncer::openresty::api_url: 'http://crowdsec-lapi.example.com:8080'
+crowdsec::bouncer::openresty::api_key: 'REPLACE_WITH_LONG_RANDOM_KEY'
+crowdsec::bouncer::openresty::mode: 'stream'
+crowdsec::bouncer::openresty::bouncing_on_type: 'all'
+
+# If OpenResty is managed by puppet-nginx and its conf.d is purged, keep the
+# CrowdSec http-context Lua hook in the Puppet catalog as well. For custom
+# OpenResty layouts use the path included from your nginx.conf http section.
+crowdsec::bouncer::openresty::manage_nginx_snippet: true
+crowdsec::bouncer::openresty::nginx_snippet_path: '/etc/nginx/conf.d/crowdsec_openresty.conf'
+
+# Optional: pass through less common OpenResty bouncer options without this
+# module owning your complex nginx/openresty Lua configuration.
+crowdsec::bouncer::openresty::extra_config:
+  REQUEST_TIMEOUT: '1000'
+  UPDATE_FREQUENCY: '10'
+  CACHE_EXPIRATION: '1'
+  SSL_VERIFY: 'true'

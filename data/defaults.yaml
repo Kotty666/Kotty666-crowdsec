@@ -1,0 +1,11 @@
+---
+crowdsec::cscli_path: '/usr/bin/cscli'
+
+crowdsec::engine::package_name: 'crowdsec'
+crowdsec::engine::service_name: 'crowdsec'
+
+crowdsec::bouncer::nginx::package_name: 'crowdsec-nginx-bouncer'
+crowdsec::bouncer::openresty::package_name: 'crowdsec-openresty-bouncer'
+
+crowdsec::repo::apt_legacy_sources: []
+crowdsec::repo::yum_gpgcheck: true

@@ -1,0 +1,5 @@
+---
+# $basearch is a YUM macro expanded at runtime, not a Puppet variable.
+crowdsec::repo::yum_baseurl: "https://packagecloud.io/crowdsec/crowdsec/el/%{facts.os.release.major}/$basearch"
+crowdsec::repo::yum_gpgkey: 'https://packagecloud.io/crowdsec/crowdsec/gpgkey'
+crowdsec::repo::yum_gpgcheck: true

@@ -1,0 +1,65 @@
+---
+# nodes/forum.example.com.yaml
+
+classes:
+  include:
+    - profile::www::nginx_phpfpm
+    - crowdsec
+    - crowdsec::appsec
+    - crowdsec::bouncer::nginx
+
+# ---------------------------------------------------------------------------
+# profile::www::nginx_phpfpm
+# ---------------------------------------------------------------------------
+profile::www::nginx_phpfpm::letsencrypt_email: 'admin@example.com'
+
+profile::www::nginx_phpfpm::vhosts:
+  forum.example.com:
+    www_root: '/var/www/phpbb'
+    php_fpm_socket: '/run/php/php8.3-fpm.sock'
+    php_version: '8.3'
+    letsencrypt: true
+    client_max_body_size: '10m'
+    index_files:
+      - 'index.php'
+    # Optional: zusaetzliche Hostnamen, die der gleiche Vhost bedient.
+    # Werden in nginx server_name UND ins Let's-Encrypt-SAN-Cert aufgenommen.
+    # DNS muss auf den gleichen Host zeigen, sonst scheitert die ACME-Challenge.
+    server_aliases:
+      - 'new.forum.example.com'
+    deny_patterns:
+      - '~ ^/(config\.php|common\.php)$'
+      - '~ ^/(cache|files|store|images/avatars/upload|includes|vendor|install)(/|$)'
+      - '~ /\.(git|svn|htaccess)$'
+
+# ---------------------------------------------------------------------------
+# crowdsec
+# ---------------------------------------------------------------------------
+crowdsec::collections:
+  - 'crowdsecurity/nginx'
+  - 'crowdsecurity/http-cve'
+  - 'crowdsecurity/whitelist-good-actors'
+  - 'crowdsecurity/phpbb'
+
+crowdsec::manage_nginx_acquisition: true
+crowdsec::nginx_access_log: '/var/log/nginx/access.log'
+crowdsec::nginx_error_log: '/var/log/nginx/error.log'
+
+# ---------------------------------------------------------------------------
+# crowdsec::appsec
+# ---------------------------------------------------------------------------
+crowdsec::appsec::listen_addr: '127.0.0.1:7422'
+
+# ---------------------------------------------------------------------------
+# crowdsec::bouncer::nginx
+# ---------------------------------------------------------------------------
+
+# Schlussel generieren nach erstem Puppet-Run:
+#   cscli bouncers add nginx-bouncer
+# In Produktion via hiera-eyaml verschluesseln:
+#   eyaml encrypt -s 'DER_GENERIERTE_KEY'
+crowdsec::bouncer::nginx::api_key: 'REPLACE_WITH_CSCLI_OUTPUT'
+crowdsec::bouncer::nginx::api_url: 'http://127.0.0.1:8080'
+crowdsec::bouncer::nginx::mode: 'stream'
+crowdsec::bouncer::nginx::appsec_url: 'http://127.0.0.1:7422'
+crowdsec::bouncer::nginx::appsec_failure_action: 'passthrough'

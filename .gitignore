@@ -1,0 +1,6 @@
+.bundle/
+spec/fixtures/
+pkg/
+vendor/
+.vagrant/
+.librarian/

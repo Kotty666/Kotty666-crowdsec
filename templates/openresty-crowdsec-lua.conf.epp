@@ -1,0 +1,64 @@
+<%- |
+  String           $config_path,
+  String           $lua_package_path,
+  String           $lua_cache_size,
+  String           $lua_ssl_trusted_certificate,
+  Optional[String] $resolver,
+  String           $component_version,
+| -%>
+# #####################################################################
+# ACHTUNG: Diese Datei wird von Puppet verwaltet!
+# Manuelle Aenderungen werden beim naechsten Puppet-Lauf ueberschrieben.
+# Aenderungen bitte im Puppet-Modul 'crowdsec' vornehmen.
+#
+# WARNING: This file is managed by Puppet.
+# DO NOT EDIT manually - changes will be overwritten on the next Puppet run.
+# #####################################################################
+# This file must be loaded in the OpenResty/nginx http context.
+lua_package_path '<%= $lua_package_path %>';
+lua_shared_dict crowdsec_cache <%= $lua_cache_size %>;
+<% if $resolver { -%>
+resolver <%= $resolver %>;
+<% } -%>
+lua_ssl_trusted_certificate <%= $lua_ssl_trusted_certificate %>;
+
+init_by_lua_block {
+        cs = require "crowdsec"
+        local ok, err = cs.init("<%= $config_path %>", "<%= $component_version %>")
+        if ok == nil then
+                ngx.log(ngx.ERR, "[Crowdsec] " .. err)
+                error()
+        end
+        if ok == "Disabled" then
+                ngx.log(ngx.ALERT, "[Crowdsec] Bouncer Disabled")
+        else
+                ngx.log(ngx.ALERT, "[Crowdsec] Initialisation done")
+        end
+}
+
+map $server_addr $unix {
+        default 0;
+        "~unix:" 1;
+}
+
+access_by_lua_block {
+        local cs = require "crowdsec"
+        if ngx.var.unix == "1" then
+                ngx.log(ngx.DEBUG, "[Crowdsec] Unix socket request ignoring...")
+        else
+                cs.Allow(ngx.var.remote_addr)
+        end
+}
+
+init_worker_by_lua_block {
+        cs = require "crowdsec"
+        local mode = cs.get_mode()
+        if string.lower(mode) == "stream" then
+                ngx.log(ngx.INFO, "Initializing stream mode for worker " .. tostring(ngx.worker.id()))
+                cs.SetupStream()
+        end
+        if ngx.worker.id() == 0 then
+                ngx.log(ngx.INFO, "Initializing metrics for worker " .. tostring(ngx.worker.id()))
+                cs.SetupMetrics()
+        end
+}

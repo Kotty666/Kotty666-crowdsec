@@ -1,0 +1,31 @@
+<%- |
+  String                          $api_url,
+  Optional[String]                $api_key,
+  Enum['stream', 'live']          $mode,
+  Enum['all', 'ban', 'captcha']   $bouncing_on_type,
+  Optional[String]                $appsec_url,
+  Enum['passthrough', 'deny']     $appsec_failure_action,
+| -%>
+# #####################################################################
+# ACHTUNG: Diese Datei wird von Puppet verwaltet!
+# Manuelle Aenderungen werden beim naechsten Puppet-Lauf ueberschrieben.
+# Aenderungen bitte im Puppet-Modul 'crowdsec' vornehmen.
+#
+# WARNING: This file is managed by Puppet.
+# DO NOT EDIT manually - changes will be overwritten on the next Puppet run.
+# #####################################################################
+API_URL=<%= $api_url %>
+<% if $api_key { -%>
+API_KEY=<%= $api_key %>
+<% } -%>
+MODE=<%= $mode %>
+BOUNCING_ON_TYPE=<%= $bouncing_on_type %>
+FALLBACK_REMEDIATION=ban
+<% if $appsec_url { -%>
+APPSEC_URL=<%= $appsec_url %>
+APPSEC_FAILURE_ACTION=<%= $appsec_failure_action %>
+ALWAYS_SEND_TO_APPSEC=false
+<% } -%>
+CAPTCHA_PROVIDER=
+SITE_KEY=
+SECRET_KEY=

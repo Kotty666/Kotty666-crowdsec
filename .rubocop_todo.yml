@@ -1,0 +1,4 @@
+---
+# Intentionally left blank.
+# This file is referenced by .rubocop.yml and kept in-repo so RuboCop
+# does not fail when no generated todo configuration exists.

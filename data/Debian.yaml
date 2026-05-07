@@ -1,0 +1,10 @@
+---
+crowdsec::repo::apt_location: 'https://packagecloud.io/crowdsec/crowdsec/any'
+crowdsec::repo::apt_release: 'any'
+crowdsec::repo::apt_repos: 'main'
+crowdsec::repo::apt_key_name: 'crowdsec'
+crowdsec::repo::apt_key_source: 'https://packagecloud.io/crowdsec/crowdsec/gpgkey'
+# Remove the source file created by the packagecloud.io bootstrap script, which
+# conflicts with the puppet-managed entry (different Signed-By path).
+crowdsec::repo::apt_legacy_sources:
+  - '/etc/apt/sources.list.d/crowdsec_crowdsec.list'

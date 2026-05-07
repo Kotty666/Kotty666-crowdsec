@@ -1,0 +1,21 @@
+<%- | String $cscli_path | -%>
+#!/bin/bash
+# Managed by Puppet (crowdsec::lapi) — DO NOT EDIT.
+#
+# Verifies that the login stored in /etc/crowdsec/local_api_credentials.yaml
+# corresponds to a machine registered in the LAPI database. Exits 0 if the
+# pair is consistent (no action required), non-zero otherwise so that Puppet
+# can re-register the local watcher.
+set -eu
+
+CREDS=/etc/crowdsec/local_api_credentials.yaml
+
+[ -s "$CREDS" ]
+
+login=$(/usr/bin/awk '/^login:/ {print $2; exit}' "$CREDS")
+[ -n "$login" ]
+
+<%= $cscli_path %> machines list -o raw 2>/dev/null \
+  | /usr/bin/tail -n +2 \
+  | /usr/bin/cut -d, -f1 \
+  | /bin/grep -Fxq -- "$login"

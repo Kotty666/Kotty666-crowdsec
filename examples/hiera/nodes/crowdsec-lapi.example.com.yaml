@@ -1,0 +1,26 @@
+---
+# nodes/crowdsec-lapi.example.com.yaml
+# Central CrowdSec LAPI/engine server for remote bouncers.
+
+classes:
+  include:
+    - crowdsec
+
+# Install the engine and expose the Local API on the server's network
+# interface. Restrict TCP/8080 with your host firewall to the bouncer hosts.
+crowdsec::manage_repo: true
+crowdsec::manage_engine: true
+crowdsec::manage_lapi: true
+crowdsec::lapi::manage_server_listen_uri: true
+crowdsec::lapi::server_listen_uri: '0.0.0.0:8080'
+
+crowdsec::collections:
+  - 'crowdsecurity/nginx'
+  - 'crowdsecurity/http-cve'
+  - 'crowdsecurity/whitelist-good-actors'
+
+# Register remote bouncers on the central LAPI. Generate long random values
+# yourself and store them encrypted, for example via hiera-eyaml.
+crowdsec::bouncer_api_keys:
+  openresty-proxy-01: 'REPLACE_WITH_LONG_RANDOM_KEY'
+  openresty-proxy-02: 'REPLACE_WITH_ANOTHER_LONG_RANDOM_KEY'

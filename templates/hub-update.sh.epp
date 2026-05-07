@@ -1,0 +1,32 @@
+<%- | String $cscli_path, String $force_flag, String $logger_tag | -%>
+#!/usr/bin/env bash
+# #####################################################################
+# ACHTUNG: Diese Datei wird von Puppet verwaltet!
+# Manuelle Aenderungen werden beim naechsten Puppet-Lauf ueberschrieben.
+# Aenderungen bitte im Puppet-Modul 'crowdsec' vornehmen.
+# #####################################################################
+set -uo pipefail
+
+cscli=<%= $cscli_path %>
+
+snapshot() {
+  $cscli hub list -o json 2>/dev/null | /usr/bin/sha256sum | /usr/bin/cut -d' ' -f1
+}
+
+# Snapshot before update; tolerate failure (treat as "state differs"
+# so we err on the side of restarting if we can't read the state).
+pre=$(snapshot) || pre=""
+
+set -e
+/usr/bin/nice -n 10 $cscli hub update
+/usr/bin/nice -n 10 $cscli hub upgrade<%= $force_flag %>
+set +e
+
+post=$(snapshot) || post=""
+
+if [ "$pre" != "$post" ]; then
+  /usr/bin/logger -t <%= $logger_tag %> "hub state changed; restarting crowdsec"
+  /bin/systemctl try-restart crowdsec
+else
+  /usr/bin/logger -t <%= $logger_tag %> "hub state unchanged; service not restarted"
+fi

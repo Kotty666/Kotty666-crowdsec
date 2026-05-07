@@ -1,0 +1,24 @@
+---
+# common.yaml – Hiera-Basiswerte fuer alle Nodes.
+
+# ---------------------------------------------------------------------------
+# CrowdSec
+# ---------------------------------------------------------------------------
+crowdsec::manage_repo: true
+crowdsec::manage_hub_updates: true
+crowdsec::hub_update_hour: 4
+crowdsec::hub_update_minute: 15
+
+# ---------------------------------------------------------------------------
+# Nginx
+# ---------------------------------------------------------------------------
+profile::nginx_phpfpm::worker_processes: 'auto'
+profile::nginx_phpfpm::worker_connections: 1024
+profile::nginx_phpfpm::use_crowdsec_log_format: true
+profile::nginx_phpfpm::manage_security_headers: true
+profile::nginx_phpfpm::acme_webroot: '/var/www/letsencrypt'
+
+# ---------------------------------------------------------------------------
+# Let's Encrypt
+# ---------------------------------------------------------------------------
+letsencrypt::configure_epel: false
