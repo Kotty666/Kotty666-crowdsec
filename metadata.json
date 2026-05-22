@@ -1,12 +1,12 @@
 {
   "name": "Kotty666-crowdsec",
-  "version": "0.1.0",
-  "author": "Philipp Frik",
+  "version": "1.0.0",
+  "author": "Kotty666",
   "summary": "Manage CrowdSec engine and bouncers",
   "license": "Apache-2.0",
-  "source": "https://github.com/Kotty666/puppet-crowdsec",
+  "source": "https://github.com/Kotty666/Kotty666-crowdsec",
   "project_page": "https://github.com/Kotty666/Kotty666-crowdsec/issues",
-  "issues_url": "https://github.com/Kotty666/puppet-crowdsec",
+  "issues_url": "https://github.com/Kotty666/Kotty666-crowdsec",
   "dependencies": [
     {
       "name": "puppetlabs/stdlib",
