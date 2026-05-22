@@ -1,3 +1,11 @@
+<%- |
+  String           $config_path,
+  String           $lua_package_path,
+  String           $lua_cache_size,
+  String           $lua_ssl_trusted_certificate,
+  Optional[String] $resolver,
+  String           $component_version,
+| -%>
 # #####################################################################
 # ACHTUNG: Diese Datei wird von Puppet verwaltet!
 # Manuelle Aenderungen werden beim naechsten Puppet-Lauf ueberschrieben.
@@ -7,13 +15,16 @@
 # DO NOT EDIT manually - changes will be overwritten on the next Puppet run.
 # #####################################################################
 # This file must be loaded in the nginx http context.
-lua_package_path '/usr/local/lua/crowdsec/?.lua;;';
-lua_shared_dict crowdsec_cache 50m;
-lua_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+lua_package_path '<%= $lua_package_path %>';
+lua_shared_dict crowdsec_cache <%= $lua_cache_size %>;
+<% if $resolver { -%>
+resolver <%= $resolver %>;
+<% } -%>
+lua_ssl_trusted_certificate <%= $lua_ssl_trusted_certificate %>;
 
 init_by_lua_block {
         cs = require "crowdsec"
-        local ok, err = cs.init("/etc/crowdsec/bouncers/crowdsec-nginx-bouncer.conf", "crowdsec-nginx-bouncer/puppet")
+        local ok, err = cs.init("<%= $config_path %>", "<%= $component_version %>")
         if ok == nil then
                 ngx.log(ngx.ERR, "[Crowdsec] " .. err)
                 error()

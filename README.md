@@ -132,16 +132,18 @@ class { 'crowdsec::appsec':
 
 ### `class { 'crowdsec::bouncer::nginx': }`
 
-Installiert/konfiguriert den Nginx-Bouncer inkl. lokaler Config-Datei.
+Installiert/konfiguriert den Nginx-Bouncer inkl. lokaler Config-Datei und verwaltet standardmäßig den Lua-Hook unter `/etc/nginx/conf.d/crowdsec_nginx.conf`. Zusätzlich stellt die Klasse sicher, dass `/etc/nginx/nginx.conf` diesen `conf.d`-Pfad im `http`-Kontext inkludiert. Das ist wichtig, wenn `puppet-nginx` `conf.d` purged oder `nginx.conf` keinen `conf.d`-Include enthält: Ohne eingebundenen Lua-Hook sieht man nur CrowdSec-Logformate in Nginx, aber der Bouncer wird nicht im Request-Pfad ausgeführt.
 
 ```puppet
 class { 'crowdsec::bouncer::nginx':
-  ensure  => 'installed',
-  api_url => 'http://127.0.0.1:8080',
-  api_key => 'CHANGEME_LONG_RANDOM_KEY',
+  ensure               => 'installed',
+  api_url              => 'http://127.0.0.1:8080',
+  api_key              => 'CHANGEME_LONG_RANDOM_KEY',
   mode                 => 'stream',
-  manage_nginx_snippet => true,
-  nginx_snippet_path   => '/etc/nginx/conf.d/crowdsec_openresty.conf',
+  manage_nginx_snippet      => true,
+  nginx_snippet_path        => '/etc/nginx/conf.d/crowdsec_nginx.conf',
+  manage_nginx_conf_include => true,
+  nginx_conf_include        => '/etc/nginx/conf.d/*.conf',
 }
 ```
 

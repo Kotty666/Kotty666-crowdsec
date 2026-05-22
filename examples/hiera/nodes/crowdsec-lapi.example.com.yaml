@@ -24,3 +24,11 @@ crowdsec::collections:
 crowdsec::bouncer_api_keys:
   openresty-proxy-01: 'REPLACE_WITH_LONG_RANDOM_KEY'
   openresty-proxy-02: 'REPLACE_WITH_ANOTHER_LONG_RANDOM_KEY'
+
+# Register remote log-processor machines (e.g. OpenResty hosts that read
+# their own nginx logs and forward alerts to this LAPI). The same name and
+# password must be configured on the remote host via crowdsec::lapi::login
+# and crowdsec::lapi::password. Store passwords encrypted, e.g. hiera-eyaml.
+crowdsec::machine_credentials:
+  openresty-proxy-01: 'REPLACE_WITH_LONG_RANDOM_PASSWORD'
+  openresty-proxy-02: 'REPLACE_WITH_ANOTHER_LONG_RANDOM_PASSWORD'

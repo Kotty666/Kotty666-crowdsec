@@ -4,6 +4,7 @@
 # @param manage_engine Whether to manage the CrowdSec engine package and service.
 # @param manage_lapi Whether to manage Local API client credentials.
 # @param bouncer_api_keys Map of bouncer names to API keys to register on the local LAPI.
+# @param machine_credentials Map of machine names to passwords to register on the local LAPI for remote log processors.
 # @param collections List of CrowdSec collections to install.
 # @param parsers List of CrowdSec parsers to install.
 # @param scenarios List of CrowdSec scenarios to install.
@@ -11,8 +12,10 @@
 # @param whitelists List of IP ranges or expressions to whitelist globally.
 # @param console_enroll_key Optional enrollment key for the CrowdSec console.
 # @param manage_nginx_acquisition Whether to manage log acquisition for Nginx.
-# @param nginx_access_log Path to the Nginx access log.
-# @param nginx_error_log Path to the Nginx error log.
+# @param nginx_access_log Path to the Nginx access log (used when nginx_logs and nginx_acquisitions are empty).
+# @param nginx_error_log Path to the Nginx error log (used when nginx_logs and nginx_acquisitions are empty).
+# @param nginx_logs Array of nginx log paths (globs supported) ingested into a single 'nginx' acquisition source. Overrides nginx_access_log/nginx_error_log when non-empty.
+# @param nginx_acquisitions Hash of acquisition-source-name to array of log paths. Each entry produces a separate /etc/crowdsec/acquis.d/nginx-<name>.yaml. Takes precedence over nginx_logs.
 # @param manage_hub_updates Whether to manage periodic hub update/upgrade via cron.
 # @param hub_update_hour Hour at which the hub update cron runs.
 # @param hub_update_minute Minute at which the hub update cron runs.
@@ -23,6 +26,7 @@ class crowdsec (
   Boolean              $manage_engine            = true,
   Boolean              $manage_lapi              = true,
   Hash[String, String] $bouncer_api_keys          = {},
+  Hash[String, String] $machine_credentials       = {},
   Array[String]        $collections              = [],
   Array[String]        $parsers                  = [],
   Array[String]        $scenarios                = [],
@@ -32,6 +36,8 @@ class crowdsec (
   Boolean              $manage_nginx_acquisition = false,
   String               $nginx_access_log         = '/var/log/nginx/access.log',
   String               $nginx_error_log          = '/var/log/nginx/error.log',
+  Array[String]        $nginx_logs               = [],
+  Hash[String, Array[String]] $nginx_acquisitions = {},
   Boolean              $manage_hub_updates       = true,
   Integer              $hub_update_hour          = 4,
   Integer              $hub_update_minute        = 15,
@@ -60,9 +66,20 @@ class crowdsec (
     fail('crowdsec::bouncer_api_keys can only be used when crowdsec::manage_engine is true')
   }
 
+  if !empty($machine_credentials) and !$manage_engine {
+    fail('crowdsec::machine_credentials can only be used when crowdsec::manage_engine is true')
+  }
+
   $bouncer_api_keys.each |String $bouncer_name, String $api_key| {
     crowdsec::bouncer::api_key { $bouncer_name:
       api_key    => $api_key,
+      cscli_path => $cscli_path,
+    }
+  }
+
+  $machine_credentials.each |String $machine_name, String $password| {
+    crowdsec::machine { $machine_name:
+      password   => $password,
       cscli_path => $cscli_path,
     }
   }
@@ -107,9 +124,22 @@ class crowdsec (
   }
 
   if $manage_nginx_acquisition {
-    crowdsec::acquisition::file { 'nginx':
-      filenames => [$nginx_access_log, $nginx_error_log],
-      type      => 'nginx',
+    if !empty($nginx_acquisitions) {
+      $nginx_acquisitions.each |String $source_name, Array[String] $filenames| {
+        crowdsec::acquisition::file { "nginx-${source_name}":
+          filenames => $filenames,
+          type      => 'nginx',
+        }
+      }
+    } else {
+      $_nginx_logs = empty($nginx_logs) ? {
+        true    => [$nginx_access_log, $nginx_error_log],
+        default => $nginx_logs,
+      }
+      crowdsec::acquisition::file { 'nginx':
+        filenames => $_nginx_logs,
+        type      => 'nginx',
+      }
     }
   }
 

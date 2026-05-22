@@ -9,3 +9,13 @@ crowdsec::bouncer::openresty::package_name: 'crowdsec-openresty-bouncer'
 
 crowdsec::repo::apt_legacy_sources: []
 crowdsec::repo::yum_gpgcheck: true
+
+# Lua hook paths for the nginx/openresty bouncer hook snippet. The CrowdSec
+# nginx-bouncer package installs its Lua library to /usr/lib/crowdsec/lua/ on
+# both Debian/Ubuntu and RHEL-family RPMs, so this default works for both.
+# The TLS trust store path differs per OS family and is overridden in
+# data/<OsFamily>.yaml.
+crowdsec::bouncer::nginx::lua_package_path: '/usr/lib/crowdsec/lua/?.lua;;'
+crowdsec::bouncer::nginx::lua_ssl_trusted_certificate: '/etc/ssl/certs/ca-certificates.crt'
+crowdsec::bouncer::nginx::request_timeout: 5000
+crowdsec::bouncer::openresty::lua_ssl_trusted_certificate: '/etc/ssl/certs/ca-certificates.crt'

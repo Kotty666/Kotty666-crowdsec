@@ -5,6 +5,13 @@
   Enum['all', 'ban', 'captcha']   $bouncing_on_type,
   Optional[String]                $appsec_url,
   Enum['passthrough', 'deny']     $appsec_failure_action,
+  Integer[1]                      $request_timeout,
+  Optional[Integer[1]]            $update_frequency,
+  Optional[String]                $captcha_provider,
+  Optional[String]                $captcha_site_key,
+  Optional[String]                $captcha_secret_key,
+  Optional[String]                $ban_template_path,
+  Optional[String]                $redirect_location,
 | -%>
 # #####################################################################
 # ACHTUNG: Diese Datei wird von Puppet verwaltet!
@@ -21,11 +28,21 @@ API_KEY=<%= $api_key %>
 MODE=<%= $mode %>
 BOUNCING_ON_TYPE=<%= $bouncing_on_type %>
 FALLBACK_REMEDIATION=ban
+REQUEST_TIMEOUT=<%= $request_timeout %>
+<% if $update_frequency { -%>
+UPDATE_FREQUENCY=<%= $update_frequency %>
+<% } -%>
 <% if $appsec_url { -%>
 APPSEC_URL=<%= $appsec_url %>
 APPSEC_FAILURE_ACTION=<%= $appsec_failure_action %>
 ALWAYS_SEND_TO_APPSEC=false
 <% } -%>
-CAPTCHA_PROVIDER=
-SITE_KEY=
-SECRET_KEY=
+CAPTCHA_PROVIDER=<%= $captcha_provider %>
+SITE_KEY=<%= $captcha_site_key %>
+SECRET_KEY=<%= $captcha_secret_key %>
+<% if $ban_template_path { -%>
+BAN_TEMPLATE_PATH=<%= $ban_template_path %>
+<% } -%>
+<% if $redirect_location { -%>
+REDIRECT_LOCATION=<%= $redirect_location %>
+<% } -%>

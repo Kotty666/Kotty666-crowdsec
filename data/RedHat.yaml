@@ -3,3 +3,7 @@
 crowdsec::repo::yum_baseurl: "https://packagecloud.io/crowdsec/crowdsec/el/%{facts.os.release.major}/$basearch"
 crowdsec::repo::yum_gpgkey: 'https://packagecloud.io/crowdsec/crowdsec/gpgkey'
 crowdsec::repo::yum_gpgcheck: true
+
+# RHEL-family system CA bundle path. Differs from Debian.
+crowdsec::bouncer::nginx::lua_ssl_trusted_certificate: '/etc/pki/tls/certs/ca-bundle.crt'
+crowdsec::bouncer::openresty::lua_ssl_trusted_certificate: '/etc/pki/tls/certs/ca-bundle.crt'

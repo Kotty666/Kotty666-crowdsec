@@ -70,6 +70,38 @@ describe 'crowdsec' do
         end
       end
 
+      context 'with machine credentials' do
+        let(:params) do
+          {
+            machine_credentials: {
+              'openresty-proxy-01' => 'secret-password',
+            },
+          }
+        end
+
+        it { is_expected.to compile.with_all_deps }
+
+        it 'registers the machine on the local LAPI' do
+          is_expected.to contain_crowdsec__machine('openresty-proxy-01').with(
+            password: 'secret-password',
+            cscli_path: '/usr/bin/cscli',
+          )
+        end
+      end
+
+      context 'with machine_credentials but manage_engine => false' do
+        let(:params) do
+          {
+            manage_engine: false,
+            machine_credentials: {
+              'openresty-proxy-01' => 'secret-password',
+            },
+          }
+        end
+
+        it { is_expected.to compile.and_raise_error(%r{machine_credentials}) }
+      end
+
       context 'hub update wrapper' do
         it { is_expected.to contain_file('/usr/local/sbin/crowdsec-hub-update').with(ensure: 'file', mode: '0755') }
 

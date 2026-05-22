@@ -4,8 +4,9 @@
   "author": "Philipp Frik",
   "summary": "Manage CrowdSec engine and bouncers",
   "license": "Apache-2.0",
-  "source": "https://github.com/Kotty666/kotty666-crowdsec",
-  "issues_url": "https://github.com/Kotty666/kotty666-crowdsec",
+  "source": "https://github.com/Kotty666/puppet-crowdsec",
+  "project_page": "https://github.com/Kotty666/Kotty666-crowdsec/issues",
+  "issues_url": "https://github.com/Kotty666/puppet-crowdsec",
   "dependencies": [
     {
       "name": "puppetlabs/stdlib",
@@ -27,27 +28,51 @@
   "operatingsystem_support": [
     {
       "operatingsystem": "Debian",
-      "operatingsystemrelease": ["11", "12"]
+      "operatingsystemrelease": [
+        "11",
+        "12",
+        "13"
+      ]
     },
     {
       "operatingsystem": "Ubuntu",
-      "operatingsystemrelease": ["22.04", "24.04"]
+      "operatingsystemrelease": [
+        "22.04",
+        "24.04",
+        "26.04"
+      ]
     },
     {
       "operatingsystem": "RedHat",
-      "operatingsystemrelease": ["8", "9"]
+      "operatingsystemrelease": [
+        "8",
+        "9",
+        "10"
+      ]
     },
     {
       "operatingsystem": "CentOS",
-      "operatingsystemrelease": ["8", "9"]
+      "operatingsystemrelease": [
+        "8",
+        "9",
+        "10"
+      ]
     },
     {
       "operatingsystem": "Rocky",
-      "operatingsystemrelease": ["8", "9"]
+      "operatingsystemrelease": [
+        "8",
+        "9",
+        "10"
+      ]
     },
     {
       "operatingsystem": "AlmaLinux",
-      "operatingsystemrelease": ["8", "9"]
+      "operatingsystemrelease": [
+        "8",
+        "9",
+        "10"
+      ]
     }
   ],
   "requirements": [

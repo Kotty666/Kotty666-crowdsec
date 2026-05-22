@@ -21,6 +21,7 @@
 * [`crowdsec::appsec::rule`](#crowdsec--appsec--rule): Installs a CrowdSec AppSec rule using `cscli`.
 * [`crowdsec::bouncer::api_key`](#crowdsec--bouncer--api_key): Registers a CrowdSec bouncer API key on the local LAPI.
 * [`crowdsec::collection`](#crowdsec--collection): Installs a CrowdSec collection using `cscli`.
+* [`crowdsec::machine`](#crowdsec--machine): Registers a CrowdSec machine (log processor / agent) on the local LAPI.
 * [`crowdsec::parser`](#crowdsec--parser): Installs a CrowdSec parser using `cscli`.
 * [`crowdsec::postoverflow`](#crowdsec--postoverflow): Installs a CrowdSec postoverflow using `cscli`.
 * [`crowdsec::scenario`](#crowdsec--scenario): Installs a CrowdSec scenario using `cscli`.
@@ -39,6 +40,7 @@ The following parameters are available in the `crowdsec` class:
 * [`manage_engine`](#-crowdsec--manage_engine)
 * [`manage_lapi`](#-crowdsec--manage_lapi)
 * [`bouncer_api_keys`](#-crowdsec--bouncer_api_keys)
+* [`machine_credentials`](#-crowdsec--machine_credentials)
 * [`collections`](#-crowdsec--collections)
 * [`parsers`](#-crowdsec--parsers)
 * [`scenarios`](#-crowdsec--scenarios)
@@ -48,6 +50,8 @@ The following parameters are available in the `crowdsec` class:
 * [`manage_nginx_acquisition`](#-crowdsec--manage_nginx_acquisition)
 * [`nginx_access_log`](#-crowdsec--nginx_access_log)
 * [`nginx_error_log`](#-crowdsec--nginx_error_log)
+* [`nginx_logs`](#-crowdsec--nginx_logs)
+* [`nginx_acquisitions`](#-crowdsec--nginx_acquisitions)
 * [`manage_hub_updates`](#-crowdsec--manage_hub_updates)
 * [`hub_update_hour`](#-crowdsec--hub_update_hour)
 * [`hub_update_minute`](#-crowdsec--hub_update_minute)
@@ -83,6 +87,14 @@ Default value: `true`
 Data type: `Hash[String, String]`
 
 Map of bouncer names to API keys to register on the local LAPI.
+
+Default value: `{}`
+
+##### <a name="-crowdsec--machine_credentials"></a>`machine_credentials`
+
+Data type: `Hash[String, String]`
+
+Map of machine names to passwords to register on the local LAPI for remote log processors.
 
 Default value: `{}`
 
@@ -146,7 +158,7 @@ Default value: `false`
 
 Data type: `String`
 
-Path to the Nginx access log.
+Path to the Nginx access log (used when nginx_logs and nginx_acquisitions are empty).
 
 Default value: `'/var/log/nginx/access.log'`
 
@@ -154,9 +166,25 @@ Default value: `'/var/log/nginx/access.log'`
 
 Data type: `String`
 
-Path to the Nginx error log.
+Path to the Nginx error log (used when nginx_logs and nginx_acquisitions are empty).
 
 Default value: `'/var/log/nginx/error.log'`
+
+##### <a name="-crowdsec--nginx_logs"></a>`nginx_logs`
+
+Data type: `Array[String]`
+
+Array of nginx log paths (globs supported) ingested into a single 'nginx' acquisition source. Overrides nginx_access_log/nginx_error_log when non-empty.
+
+Default value: `[]`
+
+##### <a name="-crowdsec--nginx_acquisitions"></a>`nginx_acquisitions`
+
+Data type: `Hash[String, Array[String]]`
+
+Hash of acquisition-source-name to array of log paths. Each entry produces a separate /etc/crowdsec/acquis.d/nginx-<name>.yaml. Takes precedence over nginx_logs.
+
+Default value: `{}`
 
 ##### <a name="-crowdsec--manage_hub_updates"></a>`manage_hub_updates`
 
@@ -248,12 +276,33 @@ The following parameters are available in the `crowdsec::bouncer::nginx` class:
 
 * [`ensure`](#-crowdsec--bouncer--nginx--ensure)
 * [`package_name`](#-crowdsec--bouncer--nginx--package_name)
+* [`manage_config`](#-crowdsec--bouncer--nginx--manage_config)
+* [`config_path`](#-crowdsec--bouncer--nginx--config_path)
+* [`local_config_path`](#-crowdsec--bouncer--nginx--local_config_path)
 * [`api_url`](#-crowdsec--bouncer--nginx--api_url)
 * [`api_key`](#-crowdsec--bouncer--nginx--api_key)
 * [`mode`](#-crowdsec--bouncer--nginx--mode)
 * [`bouncing_on_type`](#-crowdsec--bouncer--nginx--bouncing_on_type)
 * [`appsec_url`](#-crowdsec--bouncer--nginx--appsec_url)
 * [`appsec_failure_action`](#-crowdsec--bouncer--nginx--appsec_failure_action)
+* [`request_timeout`](#-crowdsec--bouncer--nginx--request_timeout)
+* [`update_frequency`](#-crowdsec--bouncer--nginx--update_frequency)
+* [`captcha_provider`](#-crowdsec--bouncer--nginx--captcha_provider)
+* [`captcha_site_key`](#-crowdsec--bouncer--nginx--captcha_site_key)
+* [`captcha_secret_key`](#-crowdsec--bouncer--nginx--captcha_secret_key)
+* [`ban_template_path`](#-crowdsec--bouncer--nginx--ban_template_path)
+* [`redirect_location`](#-crowdsec--bouncer--nginx--redirect_location)
+* [`manage_nginx_snippet`](#-crowdsec--bouncer--nginx--manage_nginx_snippet)
+* [`nginx_snippet_path`](#-crowdsec--bouncer--nginx--nginx_snippet_path)
+* [`manage_nginx_conf_include`](#-crowdsec--bouncer--nginx--manage_nginx_conf_include)
+* [`nginx_conf_path`](#-crowdsec--bouncer--nginx--nginx_conf_path)
+* [`nginx_conf_include`](#-crowdsec--bouncer--nginx--nginx_conf_include)
+* [`nginx_conf_include_match`](#-crowdsec--bouncer--nginx--nginx_conf_include_match)
+* [`lua_package_path`](#-crowdsec--bouncer--nginx--lua_package_path)
+* [`lua_cache_size`](#-crowdsec--bouncer--nginx--lua_cache_size)
+* [`lua_ssl_trusted_certificate`](#-crowdsec--bouncer--nginx--lua_ssl_trusted_certificate)
+* [`resolver`](#-crowdsec--bouncer--nginx--resolver)
+* [`component_version`](#-crowdsec--bouncer--nginx--component_version)
 
 ##### <a name="-crowdsec--bouncer--nginx--ensure"></a>`ensure`
 
@@ -270,6 +319,30 @@ Data type: `String`
 OS package name (provided via Hiera).
 
 Default value: `'crowdsec-nginx-bouncer'`
+
+##### <a name="-crowdsec--bouncer--nginx--manage_config"></a>`manage_config`
+
+Data type: `Boolean`
+
+Whether to manage the local bouncer config overrides.
+
+Default value: `true`
+
+##### <a name="-crowdsec--bouncer--nginx--config_path"></a>`config_path`
+
+Data type: `String`
+
+Path to the package-provided bouncer config read by the Lua hook.
+
+Default value: `'/etc/crowdsec/bouncers/crowdsec-nginx-bouncer.conf'`
+
+##### <a name="-crowdsec--bouncer--nginx--local_config_path"></a>`local_config_path`
+
+Data type: `String`
+
+Path to the local bouncer config override file.
+
+Default value: `'/etc/crowdsec/bouncers/crowdsec-nginx-bouncer.conf.local'`
 
 ##### <a name="-crowdsec--bouncer--nginx--api_url"></a>`api_url`
 
@@ -307,7 +380,7 @@ Default value: `'ban'`
 
 Data type: `Optional[String]`
 
-URL of the AppSec listener. Empty string disables AppSec forwarding.
+URL of the AppSec listener. Undef disables AppSec forwarding.
 
 Default value: `undef`
 
@@ -318,6 +391,150 @@ Data type: `Enum['passthrough', 'deny']`
 Action when AppSec is unreachable.
 
 Default value: `'passthrough'`
+
+##### <a name="-crowdsec--bouncer--nginx--request_timeout"></a>`request_timeout`
+
+Data type: `Integer[1]`
+
+Timeout (ms) for Lua HTTP calls to the LAPI. Default 5000.
+
+Default value: `5000`
+
+##### <a name="-crowdsec--bouncer--nginx--update_frequency"></a>`update_frequency`
+
+Data type: `Optional[Integer[1]]`
+
+Optional stream-mode poll interval (seconds).
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--nginx--captcha_provider"></a>`captcha_provider`
+
+Data type: `Optional[Enum['recaptcha', 'hcaptcha', 'turnstile']]`
+
+Optional captcha provider (e.g. recaptcha, hcaptcha, turnstile).
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--nginx--captcha_site_key"></a>`captcha_site_key`
+
+Data type: `Optional[String]`
+
+Optional captcha site key.
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--nginx--captcha_secret_key"></a>`captcha_secret_key`
+
+Data type: `Optional[String]`
+
+Optional captcha secret key.
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--nginx--ban_template_path"></a>`ban_template_path`
+
+Data type: `Optional[String]`
+
+Optional path to a custom HTML template for ban responses.
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--nginx--redirect_location"></a>`redirect_location`
+
+Data type: `Optional[String]`
+
+Optional URL/location to redirect banned clients to.
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--nginx--manage_nginx_snippet"></a>`manage_nginx_snippet`
+
+Data type: `Boolean`
+
+Whether to manage the nginx http-context Lua hook snippet.
+
+Default value: `true`
+
+##### <a name="-crowdsec--bouncer--nginx--nginx_snippet_path"></a>`nginx_snippet_path`
+
+Data type: `String`
+
+Path to the nginx http-context Lua hook snippet.
+
+Default value: `'/etc/nginx/conf.d/crowdsec_nginx.conf'`
+
+##### <a name="-crowdsec--bouncer--nginx--manage_nginx_conf_include"></a>`manage_nginx_conf_include`
+
+Data type: `Boolean`
+
+Whether to ensure nginx includes the directory containing the Lua hook.
+
+Default value: `true`
+
+##### <a name="-crowdsec--bouncer--nginx--nginx_conf_path"></a>`nginx_conf_path`
+
+Data type: `String`
+
+Path to the main nginx configuration file.
+
+Default value: `'/etc/nginx/nginx.conf'`
+
+##### <a name="-crowdsec--bouncer--nginx--nginx_conf_include"></a>`nginx_conf_include`
+
+Data type: `String`
+
+Include glob that loads nginx http-context snippets.
+
+Default value: `'/etc/nginx/conf.d/*.conf'`
+
+##### <a name="-crowdsec--bouncer--nginx--nginx_conf_include_match"></a>`nginx_conf_include_match`
+
+Data type: `String`
+
+Regex used to find an existing include line before adding one.
+
+Default value: `'^\s*include\s+/etc/nginx/conf\.d/\*\.conf;\s*$'`
+
+##### <a name="-crowdsec--bouncer--nginx--lua_package_path"></a>`lua_package_path`
+
+Data type: `String`
+
+Lua package path used by the nginx bouncer hook.
+
+Default value: `'/usr/lib/crowdsec/lua/?.lua;;'`
+
+##### <a name="-crowdsec--bouncer--nginx--lua_cache_size"></a>`lua_cache_size`
+
+Data type: `String`
+
+Shared dict size for the nginx bouncer cache.
+
+Default value: `'50m'`
+
+##### <a name="-crowdsec--bouncer--nginx--lua_ssl_trusted_certificate"></a>`lua_ssl_trusted_certificate`
+
+Data type: `String`
+
+CA bundle path used by Lua HTTPS requests.
+
+Default value: `'/etc/ssl/certs/ca-certificates.crt'`
+
+##### <a name="-crowdsec--bouncer--nginx--resolver"></a>`resolver`
+
+Data type: `Optional[String]`
+
+Optional resolver directive for captcha/AppSec HTTP calls.
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--nginx--component_version"></a>`component_version`
+
+Data type: `String`
+
+Component/version string passed to the CrowdSec Lua library.
+
+Default value: `'crowdsec-nginx-bouncer/puppet'`
 
 ### <a name="crowdsec--bouncer--openresty"></a>`crowdsec::bouncer::openresty`
 
@@ -334,13 +551,32 @@ The following parameters are available in the `crowdsec::bouncer::openresty` cla
 * [`package_name`](#-crowdsec--bouncer--openresty--package_name)
 * [`manage_config`](#-crowdsec--bouncer--openresty--manage_config)
 * [`config_path`](#-crowdsec--bouncer--openresty--config_path)
+* [`enabled`](#-crowdsec--bouncer--openresty--enabled)
 * [`api_url`](#-crowdsec--bouncer--openresty--api_url)
 * [`api_key`](#-crowdsec--bouncer--openresty--api_key)
 * [`mode`](#-crowdsec--bouncer--openresty--mode)
+* [`cache_expiration`](#-crowdsec--bouncer--openresty--cache_expiration)
+* [`request_timeout`](#-crowdsec--bouncer--openresty--request_timeout)
+* [`update_frequency`](#-crowdsec--bouncer--openresty--update_frequency)
+* [`enable_internal`](#-crowdsec--bouncer--openresty--enable_internal)
+* [`ssl_verify`](#-crowdsec--bouncer--openresty--ssl_verify)
 * [`bouncing_on_type`](#-crowdsec--bouncer--openresty--bouncing_on_type)
 * [`fallback_remediation`](#-crowdsec--bouncer--openresty--fallback_remediation)
+* [`exclude_location`](#-crowdsec--bouncer--openresty--exclude_location)
+* [`ban_template_path`](#-crowdsec--bouncer--openresty--ban_template_path)
+* [`redirect_location`](#-crowdsec--bouncer--openresty--redirect_location)
+* [`ret_code`](#-crowdsec--bouncer--openresty--ret_code)
+* [`captcha_provider`](#-crowdsec--bouncer--openresty--captcha_provider)
+* [`captcha_secret_key`](#-crowdsec--bouncer--openresty--captcha_secret_key)
+* [`captcha_site_key`](#-crowdsec--bouncer--openresty--captcha_site_key)
+* [`captcha_template_path`](#-crowdsec--bouncer--openresty--captcha_template_path)
+* [`captcha_expiration`](#-crowdsec--bouncer--openresty--captcha_expiration)
 * [`appsec_url`](#-crowdsec--bouncer--openresty--appsec_url)
 * [`appsec_failure_action`](#-crowdsec--bouncer--openresty--appsec_failure_action)
+* [`appsec_connect_timeout`](#-crowdsec--bouncer--openresty--appsec_connect_timeout)
+* [`appsec_send_timeout`](#-crowdsec--bouncer--openresty--appsec_send_timeout)
+* [`appsec_process_timeout`](#-crowdsec--bouncer--openresty--appsec_process_timeout)
+* [`always_send_to_appsec`](#-crowdsec--bouncer--openresty--always_send_to_appsec)
 * [`extra_config`](#-crowdsec--bouncer--openresty--extra_config)
 * [`manage_nginx_snippet`](#-crowdsec--bouncer--openresty--manage_nginx_snippet)
 * [`nginx_snippet_path`](#-crowdsec--bouncer--openresty--nginx_snippet_path)
@@ -382,6 +618,14 @@ Path to the OpenResty bouncer component configuration file.
 
 Default value: `'/etc/crowdsec/bouncers/crowdsec-openresty-bouncer.conf'`
 
+##### <a name="-crowdsec--bouncer--openresty--enabled"></a>`enabled`
+
+Data type: `Boolean`
+
+Whether the bouncer is enabled. Renders ENABLED=true|false. The Lua bouncer treats a missing or non-true value as disabled, so leaving this at true is required for the bouncer to act on decisions.
+
+Default value: `true`
+
 ##### <a name="-crowdsec--bouncer--openresty--api_url"></a>`api_url`
 
 Data type: `String`
@@ -406,6 +650,46 @@ Operating mode for the bouncer.
 
 Default value: `'stream'`
 
+##### <a name="-crowdsec--bouncer--openresty--cache_expiration"></a>`cache_expiration`
+
+Data type: `Integer[0]`
+
+Cache expiration in seconds (CACHE_EXPIRATION).
+
+Default value: `1`
+
+##### <a name="-crowdsec--bouncer--openresty--request_timeout"></a>`request_timeout`
+
+Data type: `Integer[0]`
+
+Request timeout in milliseconds for LAPI calls (REQUEST_TIMEOUT).
+
+Default value: `3000`
+
+##### <a name="-crowdsec--bouncer--openresty--update_frequency"></a>`update_frequency`
+
+Data type: `Integer[0]`
+
+Stream-mode update frequency in seconds (UPDATE_FREQUENCY).
+
+Default value: `10`
+
+##### <a name="-crowdsec--bouncer--openresty--enable_internal"></a>`enable_internal`
+
+Data type: `Boolean`
+
+Whether to bounce on internal nginx requests (ENABLE_INTERNAL).
+
+Default value: `false`
+
+##### <a name="-crowdsec--bouncer--openresty--ssl_verify"></a>`ssl_verify`
+
+Data type: `Boolean`
+
+Whether to verify the LAPI TLS certificate (SSL_VERIFY).
+
+Default value: `true`
+
 ##### <a name="-crowdsec--bouncer--openresty--bouncing_on_type"></a>`bouncing_on_type`
 
 Data type: `Enum['all', 'ban', 'captcha']`
@@ -421,6 +705,78 @@ Data type: `Enum['ban', 'captcha']`
 Remediation to apply for unknown decisions.
 
 Default value: `'ban'`
+
+##### <a name="-crowdsec--bouncer--openresty--exclude_location"></a>`exclude_location`
+
+Data type: `Optional[String]`
+
+Comma-separated list of nginx locations to exclude from bouncing (EXCLUDE_LOCATION).
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--openresty--ban_template_path"></a>`ban_template_path`
+
+Data type: `String`
+
+Path to the ban HTML template rendered for banned clients.
+
+Default value: `'/var/lib/crowdsec/lua/templates/ban.html'`
+
+##### <a name="-crowdsec--bouncer--openresty--redirect_location"></a>`redirect_location`
+
+Data type: `Optional[String]`
+
+Optional location to redirect banned clients to (REDIRECT_LOCATION). Takes priority over ret_code.
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--openresty--ret_code"></a>`ret_code`
+
+Data type: `Optional[Integer[100, 599]]`
+
+Optional HTTP status code returned for banned clients (RET_CODE).
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--openresty--captcha_provider"></a>`captcha_provider`
+
+Data type: `Optional[String]`
+
+Captcha provider (recaptcha, hcaptcha, turnstile) or empty to disable captcha.
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--openresty--captcha_secret_key"></a>`captcha_secret_key`
+
+Data type: `Optional[String]`
+
+Captcha secret key (SECRET_KEY).
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--openresty--captcha_site_key"></a>`captcha_site_key`
+
+Data type: `Optional[String]`
+
+Captcha site key (SITE_KEY).
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--openresty--captcha_template_path"></a>`captcha_template_path`
+
+Data type: `String`
+
+Path to the captcha HTML template.
+
+Default value: `'/var/lib/crowdsec/lua/templates/captcha.html'`
+
+##### <a name="-crowdsec--bouncer--openresty--captcha_expiration"></a>`captcha_expiration`
+
+Data type: `Integer[0]`
+
+Captcha cookie expiration in seconds (CAPTCHA_EXPIRATION).
+
+Default value: `3600`
 
 ##### <a name="-crowdsec--bouncer--openresty--appsec_url"></a>`appsec_url`
 
@@ -438,11 +794,43 @@ Action when AppSec is unreachable.
 
 Default value: `'passthrough'`
 
+##### <a name="-crowdsec--bouncer--openresty--appsec_connect_timeout"></a>`appsec_connect_timeout`
+
+Data type: `Optional[Integer[0]]`
+
+Optional AppSec connect timeout in milliseconds (APPSEC_CONNECT_TIMEOUT).
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--openresty--appsec_send_timeout"></a>`appsec_send_timeout`
+
+Data type: `Optional[Integer[0]]`
+
+Optional AppSec send timeout in milliseconds (APPSEC_SEND_TIMEOUT).
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--openresty--appsec_process_timeout"></a>`appsec_process_timeout`
+
+Data type: `Optional[Integer[0]]`
+
+Optional AppSec process timeout in milliseconds (APPSEC_PROCESS_TIMEOUT).
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--openresty--always_send_to_appsec"></a>`always_send_to_appsec`
+
+Data type: `Boolean`
+
+Whether to always forward requests to AppSec (ALWAYS_SEND_TO_APPSEC).
+
+Default value: `false`
+
 ##### <a name="-crowdsec--bouncer--openresty--extra_config"></a>`extra_config`
 
 Data type: `Hash[String, String]`
 
-Additional OpenResty bouncer KEY=value settings to append.
+Additional OpenResty bouncer KEY=value settings to append. Use this for keys not exposed as dedicated parameters.
 
 Default value: `{}`
 
@@ -837,6 +1225,47 @@ The following parameters are available in the `crowdsec::collection` defined typ
 Data type: `String`
 
 Path to the cscli binary (defaults to crowdsec::cscli_path from Hiera).
+
+Default value: `'/usr/bin/cscli'`
+
+### <a name="crowdsec--machine"></a>`crowdsec::machine`
+
+Mirrors `crowdsec::bouncer::api_key` but for machines: remote log-processor
+nodes authenticate to LAPI with a login/password pair rather than an API
+key. Registering the machine here lets remote nodes connect with the same
+credentials managed via Hiera (preferably hiera-eyaml).
+
+Note: the password is only consumed on first registration. Rotating the
+password here will not re-register an existing machine; remove it via
+`cscli machines delete <name>` on LAPI to force re-registration.
+
+#### Parameters
+
+The following parameters are available in the `crowdsec::machine` defined type:
+
+* [`password`](#-crowdsec--machine--password)
+* [`machine_name`](#-crowdsec--machine--machine_name)
+* [`cscli_path`](#-crowdsec--machine--cscli_path)
+
+##### <a name="-crowdsec--machine--password"></a>`password`
+
+Data type: `String`
+
+Password the remote machine will use to authenticate.
+
+##### <a name="-crowdsec--machine--machine_name"></a>`machine_name`
+
+Data type: `Pattern[/\A[A-Za-z0-9_.-]+\z/]`
+
+Machine name registered in CrowdSec; defaults to the resource title.
+
+Default value: `$title`
+
+##### <a name="-crowdsec--machine--cscli_path"></a>`cscli_path`
+
+Data type: `String`
+
+Path to the cscli binary (provided via Hiera).
 
 Default value: `'/usr/bin/cscli'`
 
