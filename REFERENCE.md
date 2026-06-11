@@ -134,7 +134,7 @@ Default value: `[]`
 
 Data type: `Array[String]`
 
-List of IP ranges or expressions to whitelist globally.
+IPs, CIDR ranges, or CrowdSec expressions to whitelist globally. Rendered as a real enrichment-stage parser whitelist under /etc/crowdsec/parsers/s02-enrich/ and fully managed: manual edits are reverted and emptying the list removes the file.
 
 Default value: `[]`
 

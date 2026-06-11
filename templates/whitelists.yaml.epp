@@ -1,13 +1,35 @@
-<%- | Array[String] $whitelists | -%>
+<%- | Array[String] $ips, Array[String] $cidrs, Array[String] $expressions | -%>
 # #####################################################################
 # ACHTUNG: Diese Datei wird von Puppet verwaltet!
 # Manuelle Aenderungen werden beim naechsten Puppet-Lauf ueberschrieben.
-# Aenderungen bitte im Puppet-Modul 'crowdsec' vornehmen.
+# Aenderungen bitte ueber Hiera (crowdsec::whitelists) vornehmen.
 #
-# WARNING: This file is managed by Puppet.
-# DO NOT EDIT manually - changes will be overwritten on the next Puppet run.
+# WARNING: This file is managed by Puppet (crowdsec::whitelists).
+# DO NOT EDIT manually - changes are reverted on the next Puppet run.
 # #####################################################################
-whitelists:
-<% $whitelists.each |$cidr| { -%>
-  - <%= $cidr %>
+#
+# CrowdSec enrichment-stage whitelist parser. Events whose source matches an
+# entry below are whitelisted before any alert or decision is created, so the
+# listed hosts/ranges are never banned.
+name: crowdsec/puppet-whitelists
+description: "Puppet-managed whitelist (crowdsec::whitelists)"
+whitelist:
+  reason: "puppet-managed whitelist"
+<% unless $ips.empty { -%>
+  ip:
+<% $ips.each |$ip| { -%>
+    - "<%= $ip %>"
+<% } -%>
+<% } -%>
+<% unless $cidrs.empty { -%>
+  cidr:
+<% $cidrs.each |$cidr| { -%>
+    - "<%= $cidr %>"
+<% } -%>
+<% } -%>
+<% unless $expressions.empty { -%>
+  expression:
+<% $expressions.each |$expr| { -%>
+    - "<%= $expr.regsubst('\\\\', '\\\\\\\\', 'G').regsubst('"', '\\"', 'G') %>"
+<% } -%>
 <% } -%>

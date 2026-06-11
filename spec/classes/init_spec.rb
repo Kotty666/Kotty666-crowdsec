@@ -46,9 +46,68 @@ describe 'crowdsec' do
 
         it { is_expected.to contain_crowdsec__collection('crowdsecurity/http-cve') }
 
-        it { is_expected.to contain_file('/etc/crowdsec/whitelists.yaml') }
+        it 'renders a real parser whitelist under s02-enrich' do
+          is_expected.to contain_file('/etc/crowdsec/parsers/s02-enrich/puppet-whitelists.yaml').with(
+            ensure: 'file',
+            mode: '0644',
+          )
+        end
+
+        it 'uses the CrowdSec whitelist parser structure with cidr entries' do
+          is_expected.to contain_file('/etc/crowdsec/parsers/s02-enrich/puppet-whitelists.yaml')
+            .with_content(%r{name: crowdsec/puppet-whitelists})
+            .with_content(%r{^whitelist:$})
+            .with_content(%r{  cidr:\n    - "10\.10\.33\.0/24"\n    - "10\.10\.34\.0/24"})
+        end
+
+        it 'reloads crowdsec when the whitelist changes' do
+          is_expected.to contain_file('/etc/crowdsec/parsers/s02-enrich/puppet-whitelists.yaml')
+            .that_notifies('Service[crowdsec]')
+        end
+
+        it 'removes the legacy non-functional whitelist file' do
+          is_expected.to contain_file('/etc/crowdsec/whitelists.yaml').with_ensure('absent')
+        end
 
         it { is_expected.to contain_exec('crowdsec-console-enroll') }
+      end
+
+      context 'with mixed ip and cidr whitelists' do
+        let(:params) { { whitelists: ['192.0.2.10', '198.51.100.0/24'] } }
+
+        it { is_expected.to compile.with_all_deps }
+
+        it 'separates bare IPs into the ip key' do
+          is_expected.to contain_file('/etc/crowdsec/parsers/s02-enrich/puppet-whitelists.yaml')
+            .with_content(%r{  ip:\n    - "192\.0\.2\.10"})
+        end
+
+        it 'separates ranges into the cidr key' do
+          is_expected.to contain_file('/etc/crowdsec/parsers/s02-enrich/puppet-whitelists.yaml')
+            .with_content(%r{  cidr:\n    - "198\.51\.100\.0/24"})
+        end
+      end
+
+      context 'with an expression containing a slash' do
+        let(:params) { { whitelists: ["evt.Parsed.http_path startsWith '/admin'", '10.0.0.0/8'] } }
+
+        it { is_expected.to compile.with_all_deps }
+
+        it 'keeps a slash-bearing expression out of the cidr bucket' do
+          is_expected.to contain_file('/etc/crowdsec/parsers/s02-enrich/puppet-whitelists.yaml')
+            .with_content(%r{  cidr:\n    - "10\.0\.0\.0/8"\n})
+            .with_content(%r{  expression:\n    - "evt\.Parsed\.http_path startsWith '/admin'"})
+        end
+      end
+
+      context 'without whitelists' do
+        it 'ensures the parser whitelist file is absent' do
+          is_expected.to contain_file('/etc/crowdsec/parsers/s02-enrich/puppet-whitelists.yaml').with_ensure('absent')
+        end
+
+        it 'still removes the legacy whitelist file' do
+          is_expected.to contain_file('/etc/crowdsec/whitelists.yaml').with_ensure('absent')
+        end
       end
 
       context 'with bouncer API keys' do

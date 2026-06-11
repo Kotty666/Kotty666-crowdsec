@@ -9,7 +9,7 @@
 # @param parsers List of CrowdSec parsers to install.
 # @param scenarios List of CrowdSec scenarios to install.
 # @param postoverflows List of CrowdSec postoverflows to install.
-# @param whitelists List of IP ranges or expressions to whitelist globally.
+# @param whitelists IPs, CIDR ranges, or CrowdSec expressions to whitelist globally. Rendered as a real enrichment-stage parser whitelist under /etc/crowdsec/parsers/s02-enrich/ and fully managed: manual edits are reverted and emptying the list removes the file.
 # @param console_enroll_key Optional enrollment key for the CrowdSec console.
 # @param manage_nginx_acquisition Whether to manage log acquisition for Nginx.
 # @param nginx_access_log Path to the Nginx access log (used when nginx_logs and nginx_acquisitions are empty).
@@ -100,13 +100,61 @@ class crowdsec (
     crowdsec::postoverflow { $postoverflow: }
   }
 
-  if !empty($whitelists) {
-    file { '/etc/crowdsec/whitelists.yaml':
+  # Whitelists are rendered as a genuine CrowdSec parser under
+  # parsers/s02-enrich, so matching events are dropped during enrichment
+  # before any alert/decision is created. The file is fully managed: anything
+  # added by hand is reverted on the next run, and emptying $whitelists
+  # removes the file again.
+
+  # Drop the pre-fix location this module used to write. CrowdSec never
+  # loaded it (wrong path, missing parser structure), so it was a no-op.
+  file { '/etc/crowdsec/whitelists.yaml':
+    ensure => absent,
+  }
+
+  $whitelist_file = '/etc/crowdsec/parsers/s02-enrich/puppet-whitelists.yaml'
+
+  if $manage_engine {
+    $whitelist_require = File['/etc/crowdsec/parsers/s02-enrich']
+    $whitelist_notify  = Service['crowdsec']
+  } else {
+    $whitelist_require = undef
+    $whitelist_notify  = undef
+  }
+
+  if empty($whitelists) {
+    file { $whitelist_file:
+      ensure => absent,
+      notify => $whitelist_notify,
+    }
+  } else {
+    # Sort entries into the ip / cidr / expression buckets CrowdSec expects.
+    # Match real IP networks/literals only: a bare IPv4/IPv6 literal is an ip,
+    # an IP literal with a '/<prefix>' suffix is a cidr, and everything else
+    # (including expressions that happen to contain '/', e.g. a path literal)
+    # is treated as a CrowdSec expression.
+    $_ip4_re   = /\A(\d{1,3}\.){3}\d{1,3}\z/
+    $_ip6_re   = /\A[0-9A-Fa-f:]*:[0-9A-Fa-f:]*\z/
+    $_cidr4_re = /\A(\d{1,3}\.){3}\d{1,3}\/\d{1,2}\z/
+    $_cidr6_re = /\A[0-9A-Fa-f:]*:[0-9A-Fa-f:]*\/\d{1,3}\z/
+    $wl_cidr = $whitelists.filter |$entry| { $entry =~ $_cidr4_re or $entry =~ $_cidr6_re }
+    $wl_ip   = $whitelists.filter |$entry| { $entry =~ $_ip4_re or $entry =~ $_ip6_re }
+    $wl_expr = $whitelists.filter |$entry| {
+      !($entry =~ $_cidr4_re or $entry =~ $_cidr6_re or $entry =~ $_ip4_re or $entry =~ $_ip6_re)
+    }
+
+    file { $whitelist_file:
       ensure  => file,
       owner   => 'root',
       group   => 'root',
       mode    => '0644',
-      content => epp('crowdsec/whitelists.yaml.epp', { 'whitelists' => $whitelists }),
+      content => epp('crowdsec/whitelists.yaml.epp', {
+        'ips'         => $wl_ip,
+        'cidrs'       => $wl_cidr,
+        'expressions' => $wl_expr,
+      }),
+      require => $whitelist_require,
+      notify  => $whitelist_notify,
     }
   }
 

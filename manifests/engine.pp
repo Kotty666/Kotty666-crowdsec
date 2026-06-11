@@ -40,6 +40,18 @@ class crowdsec::engine (
     require => Package['crowdsec'],
   }
 
+  # Enrichment parser directory used by crowdsec::whitelists. Normally
+  # created by the crowdsec package, but managed explicitly so the
+  # puppet-managed whitelist parser can be dropped regardless of package
+  # version or apply order.
+  file { '/etc/crowdsec/parsers/s02-enrich':
+    ensure  => directory,
+    owner   => 'root',
+    group   => 'root',
+    mode    => '0755',
+    require => Package['crowdsec'],
+  }
+
   # Refresh the local hub index whenever the crowdsec package is
   # installed/upgraded so subsequent `cscli <type> install` calls can find
   # items. Refreshonly avoids running on every Puppet apply.
