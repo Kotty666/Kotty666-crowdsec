@@ -44,4 +44,42 @@ describe 'crowdsec::appsec' do
       )
     end
   end
+
+  context 'with local_appsec_configs' do
+    let(:params) do
+      {
+        local_appsec_configs: {
+          'local/nextcloud-upload-tuning' => {
+            'on_load' => [
+              { 'apply' => ['SetMaxBodySize(20971520)', 'SetBodySizeExceededAction("partial")'] },
+            ],
+            'on_match' => [
+              { 'filter' => "IsInBand == true", 'apply' => ["SetRemediation('captcha')"] },
+            ],
+          },
+          'local/old' => { 'ensure' => 'absent' },
+        },
+      }
+    end
+
+    it { is_expected.to compile.with_all_deps }
+
+    it do
+      is_expected.to contain_file('/etc/crowdsec/appsec-configs/local-nextcloud-upload-tuning.yaml')
+        .with_ensure('file')
+        .with_require('File[/etc/crowdsec/appsec-configs]')
+        .with_content(%r{^name: 'local/nextcloud-upload-tuning'$})
+        .with_content(%r{^on_load:\n  - apply:\n      - 'SetMaxBodySize\(20971520\)'\n      - 'SetBodySizeExceededAction\("partial"\)'\n})
+        .with_content(%r{^on_match:\n  - filter: 'IsInBand == true'\n    apply:\n      - 'SetRemediation\(''captcha''\)'\n})
+    end
+
+    it { is_expected.to contain_file('/etc/crowdsec/appsec-configs/local-old.yaml').with_ensure('absent') }
+
+    it { is_expected.not_to contain_exec('crowdsec-appsec-config-local/nextcloud-upload-tuning') }
+
+    it do
+      is_expected.to contain_file('/etc/crowdsec/acquis.d/appsec.yaml')
+        .with_content(%r{^appsec_configs:\n  - crowdsecurity/appsec-default\n  - local/nextcloud-upload-tuning\nlabels:})
+    end
+  end
 end

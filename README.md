@@ -130,6 +130,27 @@ class { 'crowdsec::appsec':
 }
 ```
 
+Eigene (lokale) AppSec-Configs lassen sich über `local_appsec_configs` verwalten. Puppet schreibt sie nach `/etc/crowdsec/appsec-configs/` und hängt sie in `acquis.d/appsec.yaml` hinter die Hub-Configs an. Hooks (`on_load`, `pre_eval`, `post_eval`, `on_match`) bestehen aus einer `apply`-Liste und optional einem `filter`. Mit `ensure: absent` wird die Datei entfernt und der Eintrag aus der Acquisition genommen.
+
+```yaml
+crowdsec::appsec::local_appsec_configs:
+  'local/nextcloud-upload-tuning':
+    on_load:
+      - apply:
+          - 'SetMaxBodySize(20971520)'
+          - 'SetBodySizeExceededAction("partial")'
+```
+
+ergibt `/etc/crowdsec/appsec-configs/local-nextcloud-upload-tuning.yaml` sowie:
+
+```yaml
+appsec_configs:
+  - crowdsecurity/appsec-default
+  - local/nextcloud-upload-tuning
+```
+
+Einzeln geht es auch direkt über den Defined Type `crowdsec::appsec::local_config` (dann den Namen selbst in `appsec_configs` eintragen – nicht nötig, wenn über die Klasse deklariert).
+
 ### `class { 'crowdsec::bouncer::nginx': }`
 
 Installiert/konfiguriert den Nginx-Bouncer inkl. lokaler Config-Datei und verwaltet standardmäßig den Lua-Hook unter `/etc/nginx/conf.d/crowdsec_nginx.conf`. Zusätzlich stellt die Klasse sicher, dass `/etc/nginx/nginx.conf` diesen `conf.d`-Pfad im `http`-Kontext inkludiert. Das ist wichtig, wenn `puppet-nginx` `conf.d` purged oder `nginx.conf` keinen `conf.d`-Include enthält: Ohne eingebundenen Lua-Hook sieht man nur CrowdSec-Logformate in Nginx, aber der Bouncer wird nicht im Request-Pfad ausgeführt.

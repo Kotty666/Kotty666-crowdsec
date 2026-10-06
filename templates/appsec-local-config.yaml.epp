@@ -1,0 +1,43 @@
+<%- |
+  String                  $config_name,
+  Array[String]           $inband_rules,
+  Array[String]           $outofband_rules,
+  Optional[String]        $default_remediation,
+  Hash[String, Array]     $hooks,
+| -%>
+# #####################################################################
+# ACHTUNG: Diese Datei wird von Puppet verwaltet!
+# Manuelle Aenderungen werden beim naechsten Puppet-Lauf ueberschrieben.
+# Aenderungen bitte im Puppet-Modul 'crowdsec' vornehmen.
+#
+# WARNING: This file is managed by Puppet.
+# DO NOT EDIT manually - changes will be overwritten on the next Puppet run.
+# #####################################################################
+name: '<%= $config_name.regsubst("'", "''", 'G') %>'
+<% if $default_remediation { -%>
+default_remediation: '<%= $default_remediation.regsubst("'", "''", 'G') %>'
+<% } -%>
+<% { 'inband_rules' => $inband_rules, 'outofband_rules' => $outofband_rules }.each |$key, $rules| { -%>
+<% unless $rules.empty { -%>
+<%= $key %>:
+<% $rules.each |$rule| { -%>
+  - '<%= $rule.regsubst("'", "''", 'G') %>'
+<% } -%>
+<% } -%>
+<% } -%>
+<% $hooks.each |$hook_name, $entries| { -%>
+<% unless $entries.empty { -%>
+<%= $hook_name %>:
+<% $entries.each |$entry| { -%>
+<% if $entry['filter'] { -%>
+  - filter: '<%= $entry['filter'].regsubst("'", "''", 'G') %>'
+    apply:
+<% } else { -%>
+  - apply:
+<% } -%>
+<% $entry['apply'].each |$stmt| { -%>
+      - '<%= $stmt.regsubst("'", "''", 'G') %>'
+<% } -%>
+<% } -%>
+<% } -%>
+<% } -%>

@@ -52,6 +52,17 @@ class crowdsec::engine (
     require => Package['crowdsec'],
   }
 
+  # AppSec config directory used by crowdsec::appsec::local_config.
+  # Normally created by the crowdsec package / hub, but managed explicitly
+  # so local AppSec configs can be dropped regardless of apply order.
+  file { '/etc/crowdsec/appsec-configs':
+    ensure  => directory,
+    owner   => 'root',
+    group   => 'root',
+    mode    => '0755',
+    require => Package['crowdsec'],
+  }
+
   # Refresh the local hub index whenever the crowdsec package is
   # installed/upgraded so subsequent `cscli <type> install` calls can find
   # items. Refreshonly avoids running on every Puppet apply.
