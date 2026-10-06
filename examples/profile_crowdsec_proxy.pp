@@ -10,6 +10,9 @@
 # @param nginx_log_files Log files to feed into the CrowdSec acquisition pipeline.
 # @param enable_appsec Whether to enable the CrowdSec AppSec component.
 # @param appsec_listen_addr Address and port the AppSec component listens on.
+# @param appsec_configs AppSec hub configs to load.
+# @param appsec_rules AppSec hub rules to install.
+# @param appsec_local_configs Local AppSec configs (name => crowdsec::appsec::local_config params).
 # @param bouncer_api_url URL of the CrowdSec LAPI the nginx bouncer connects to.
 # @param bouncer_mode Mode for the nginx bouncer (stream or live).
 # @param console_enroll_key Optional enrollment key for the CrowdSec console.
@@ -28,6 +31,9 @@ class profile::crowdsec_proxy (
   ],
   Boolean $enable_appsec = true,
   String $appsec_listen_addr = '127.0.0.1:7422',
+  Array[String] $appsec_configs = ['crowdsecurity/appsec-default'],
+  Array[String] $appsec_rules = [],
+  Hash[String[1], Hash] $appsec_local_configs = {},
   String $bouncer_api_url = 'http://127.0.0.1:8080',
   Enum['stream', 'live'] $bouncer_mode = 'stream',
   Optional[String] $console_enroll_key = undef,
@@ -51,7 +57,10 @@ class profile::crowdsec_proxy (
 
   if $enable_appsec {
     class { 'crowdsec::appsec':
-      listen_addr => $appsec_listen_addr,
+      listen_addr          => $appsec_listen_addr,
+      appsec_configs       => $appsec_configs,
+      appsec_rules         => $appsec_rules,
+      local_appsec_configs => $appsec_local_configs,
     }
   }
 }

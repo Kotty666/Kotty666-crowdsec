@@ -1,8 +1,8 @@
 manifests/init.pp 369398f8b2de86770840da3f50358fcc1130af61
 manifests/lapi.pp 33781eb24a297851c70ced9a5e9f7b60db52467c
 manifests/repo.pp acbc060facfad04bf8bc8587749e66ddf29b7336
-manifests/appsec.pp 19263f596992f81f2a350f688ceabe8c6a639db0
-manifests/engine.pp 69f914ff218bf1a11448d12e795f202862bd2f7d
+manifests/appsec.pp aa08d514491bfd02b3dbc703b747faaa1ce5ff40
+manifests/engine.pp f6bef1af2847f8c94a09b13374e587eee7c98b32
 manifests/parser.pp a20ca1e15dfdaa247a35152132166759cfc92f3e
 manifests/machine.pp 3226ea6152ca0e6a8848aeb2dae4828fd9de777d
 manifests/scenario.pp 77b45c63fd2fd28316bf4d3a6404670d0fec7482
@@ -14,3 +14,5 @@ manifests/bouncer/nginx.pp 1d8829820e55989d28e71eddf44c5963a938e7b7
 manifests/bouncer/api_key.pp 4df3198c7251687e7a13a21dd2b8989896fa42a0
 manifests/acquisition/file.pp c35b1127d3511960193e0267e1088d533a1d48bf
 manifests/bouncer/openresty.pp 53091903cabe86a644e0fe9e3f58e990e51f6e39
+manifests/appsec/local_config.pp f3f5eaf306b4f49f8aaef8c4c57d0a0e1dc15bb5
+types/appsechook.pp c1a966c5e7266051ca064fd47247b37a96710fa8
