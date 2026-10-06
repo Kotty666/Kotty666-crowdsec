@@ -1,6 +1,6 @@
 {
   "name": "Kotty666-crowdsec",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": "Kotty666",
   "summary": "Manage CrowdSec engine and bouncers",
   "license": "Apache-2.0",
