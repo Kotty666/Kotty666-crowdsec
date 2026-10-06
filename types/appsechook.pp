@@ -3,6 +3,6 @@
 # `apply` holds the expr-lang statements to run, `filter` an optional
 # expression restricting when they run.
 type Crowdsec::AppsecHook = Struct[{
-    Optional['filter'] => String[1],
-    'apply'            => Array[String[1], 1],
+  Optional['filter'] => String[1],
+  'apply'            => Array[String[1], 1],
 }]

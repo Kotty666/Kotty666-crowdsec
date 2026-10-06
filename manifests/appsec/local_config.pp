@@ -31,26 +31,31 @@ define crowdsec::appsec::local_config (
   Array[Crowdsec::AppsecHook] $post_eval           = [],
   Array[Crowdsec::AppsecHook] $on_match            = [],
 ) {
+  if $ensure == 'present' {
+    $file_ensure = 'file'
+    $content = epp('crowdsec/appsec-local-config.yaml.epp', {
+      'config_name'         => $title,
+      'inband_rules'        => $inband_rules,
+      'outofband_rules'     => $outofband_rules,
+      'default_remediation' => $default_remediation,
+      'hooks'               => {
+        'on_load'   => $on_load,
+        'pre_eval'  => $pre_eval,
+        'post_eval' => $post_eval,
+        'on_match'  => $on_match,
+      },
+    })
+  } else {
+    $file_ensure = 'absent'
+    $content = undef
+  }
+
   file { "/etc/crowdsec/appsec-configs/${filename}":
-    ensure  => $ensure ? { 'present' => 'file', default => 'absent' },
+    ensure  => $file_ensure,
     owner   => 'root',
     group   => 'root',
     mode    => '0644',
-    content => $ensure ? {
-      'present' => epp('crowdsec/appsec-local-config.yaml.epp', {
-          'config_name'         => $title,
-          'inband_rules'        => $inband_rules,
-          'outofband_rules'     => $outofband_rules,
-          'default_remediation' => $default_remediation,
-          'hooks'               => {
-            'on_load'   => $on_load,
-            'pre_eval'  => $pre_eval,
-            'post_eval' => $post_eval,
-            'on_match'  => $on_match,
-          },
-      }),
-      default   => undef,
-    },
+    content => $content,
     require => File['/etc/crowdsec/appsec-configs'],
   }
 }

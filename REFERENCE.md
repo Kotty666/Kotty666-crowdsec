@@ -1452,8 +1452,8 @@ Alias of
 
 ```puppet
 Struct[{
-    Optional['filter'] => String[1],
-    'apply'            => Array[String[1], 1],
+  Optional['filter'] => String[1],
+  'apply'            => Array[String[1], 1],
 }]
 ```
 

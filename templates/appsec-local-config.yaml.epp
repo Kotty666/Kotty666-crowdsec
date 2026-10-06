@@ -17,7 +17,8 @@ name: '<%= $config_name.regsubst("'", "''", 'G') %>'
 <% if $default_remediation { -%>
 default_remediation: '<%= $default_remediation.regsubst("'", "''", 'G') %>'
 <% } -%>
-<% { 'inband_rules' => $inband_rules, 'outofband_rules' => $outofband_rules }.each |$key, $rules| { -%>
+<% $rule_sets = { 'inband_rules' => $inband_rules, 'outofband_rules' => $outofband_rules } -%>
+<% $rule_sets.each |$key, $rules| { -%>
 <% unless $rules.empty { -%>
 <%= $key %>:
 <% $rules.each |$rule| { -%>
