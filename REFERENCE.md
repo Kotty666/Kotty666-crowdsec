@@ -18,6 +18,7 @@
 
 * [`crowdsec::acquisition::file`](#crowdsec--acquisition--file): Manages an acquisition source file for log ingestion.
 * [`crowdsec::appsec::config`](#crowdsec--appsec--config): Installs a CrowdSec AppSec config using `cscli`.
+* [`crowdsec::appsec::local_config`](#crowdsec--appsec--local_config): Manages a local (non-hub) CrowdSec AppSec config file.
 * [`crowdsec::appsec::rule`](#crowdsec--appsec--rule): Installs a CrowdSec AppSec rule using `cscli`.
 * [`crowdsec::bouncer::api_key`](#crowdsec--bouncer--api_key): Registers a CrowdSec bouncer API key on the local LAPI.
 * [`crowdsec::collection`](#crowdsec--collection): Installs a CrowdSec collection using `cscli`.
@@ -25,6 +26,10 @@
 * [`crowdsec::parser`](#crowdsec--parser): Installs a CrowdSec parser using `cscli`.
 * [`crowdsec::postoverflow`](#crowdsec--postoverflow): Installs a CrowdSec postoverflow using `cscli`.
 * [`crowdsec::scenario`](#crowdsec--scenario): Installs a CrowdSec scenario using `cscli`.
+
+### Data types
+
+* [`Crowdsec::AppsecHook`](#Crowdsec--AppsecHook): A CrowdSec AppSec hook entry (on_load, pre_eval, post_eval, on_match).
 
 ## Classes
 
@@ -241,6 +246,7 @@ The following parameters are available in the `crowdsec::appsec` class:
 * [`listen_addr`](#-crowdsec--appsec--listen_addr)
 * [`appsec_configs`](#-crowdsec--appsec--appsec_configs)
 * [`appsec_rules`](#-crowdsec--appsec--appsec_rules)
+* [`local_appsec_configs`](#-crowdsec--appsec--local_appsec_configs)
 
 ##### <a name="-crowdsec--appsec--listen_addr"></a>`listen_addr`
 
@@ -265,6 +271,14 @@ Data type: `Array[String]`
 List of AppSec rule names (`appsec-rules` hub items) to install.
 
 Default value: `[]`
+
+##### <a name="-crowdsec--appsec--local_appsec_configs"></a>`local_appsec_configs`
+
+Data type: `Hash[String[1], Hash]`
+
+Local AppSec configs keyed by config name; each value holds `crowdsec::appsec::local_config` parameters. Present entries are appended to `appsec_configs` in acquis.d/appsec.yaml (after the hub configs, so they can override them).
+
+Default value: `{}`
 
 ### <a name="crowdsec--bouncer--nginx"></a>`crowdsec::bouncer::nginx`
 
@@ -1152,6 +1166,110 @@ Path to the cscli binary (defaults to crowdsec::cscli_path from Hiera).
 
 Default value: `'/usr/bin/cscli'`
 
+### <a name="crowdsec--appsec--local_config"></a>`crowdsec::appsec::local_config`
+
+Renders `/etc/crowdsec/appsec-configs/<filename>` with the given hooks
+and rule lists. The resource title is used as the AppSec config `name`
+and is what `crowdsec::appsec` references in `acquis.d/appsec.yaml`.
+
+#### Examples
+
+##### Raise the body size limit for Nextcloud uploads
+
+```puppet
+crowdsec::appsec::local_config { 'local/nextcloud-upload-tuning':
+  on_load => [
+    { 'apply' => ['SetMaxBodySize(20971520)', 'SetBodySizeExceededAction("partial")'] },
+  ],
+}
+```
+
+#### Parameters
+
+The following parameters are available in the `crowdsec::appsec::local_config` defined type:
+
+* [`ensure`](#-crowdsec--appsec--local_config--ensure)
+* [`filename`](#-crowdsec--appsec--local_config--filename)
+* [`inband_rules`](#-crowdsec--appsec--local_config--inband_rules)
+* [`outofband_rules`](#-crowdsec--appsec--local_config--outofband_rules)
+* [`default_remediation`](#-crowdsec--appsec--local_config--default_remediation)
+* [`on_load`](#-crowdsec--appsec--local_config--on_load)
+* [`pre_eval`](#-crowdsec--appsec--local_config--pre_eval)
+* [`post_eval`](#-crowdsec--appsec--local_config--post_eval)
+* [`on_match`](#-crowdsec--appsec--local_config--on_match)
+
+##### <a name="-crowdsec--appsec--local_config--ensure"></a>`ensure`
+
+Data type: `Enum['present', 'absent']`
+
+Whether the config file should be present or absent.
+
+Default value: `'present'`
+
+##### <a name="-crowdsec--appsec--local_config--filename"></a>`filename`
+
+Data type: `String[1]`
+
+File name below /etc/crowdsec/appsec-configs (defaults to the title with '/' replaced by '-').
+
+Default value: `"${regsubst($title, '/', '-', 'G')}.yaml"`
+
+##### <a name="-crowdsec--appsec--local_config--inband_rules"></a>`inband_rules`
+
+Data type: `Array[String[1]]`
+
+AppSec rule names/globs evaluated in-band (blocking).
+
+Default value: `[]`
+
+##### <a name="-crowdsec--appsec--local_config--outofband_rules"></a>`outofband_rules`
+
+Data type: `Array[String[1]]`
+
+AppSec rule names/globs evaluated out-of-band (non-blocking).
+
+Default value: `[]`
+
+##### <a name="-crowdsec--appsec--local_config--default_remediation"></a>`default_remediation`
+
+Data type: `Optional[String[1]]`
+
+Remediation applied on in-band matches (e.g. 'ban', 'captcha').
+
+Default value: `undef`
+
+##### <a name="-crowdsec--appsec--local_config--on_load"></a>`on_load`
+
+Data type: `Array[Crowdsec::AppsecHook]`
+
+Hooks run when the config is loaded. Each entry has an `apply` list and an optional `filter`.
+
+Default value: `[]`
+
+##### <a name="-crowdsec--appsec--local_config--pre_eval"></a>`pre_eval`
+
+Data type: `Array[Crowdsec::AppsecHook]`
+
+Hooks run before rule evaluation.
+
+Default value: `[]`
+
+##### <a name="-crowdsec--appsec--local_config--post_eval"></a>`post_eval`
+
+Data type: `Array[Crowdsec::AppsecHook]`
+
+Hooks run after rule evaluation.
+
+Default value: `[]`
+
+##### <a name="-crowdsec--appsec--local_config--on_match"></a>`on_match`
+
+Data type: `Array[Crowdsec::AppsecHook]`
+
+Hooks run when a rule matches.
+
+Default value: `[]`
+
 ### <a name="crowdsec--appsec--rule"></a>`crowdsec::appsec::rule`
 
 Requires the `crowdsec` package only — cscli works offline. Callers that
@@ -1322,4 +1440,20 @@ Data type: `String`
 Path to the cscli binary (defaults to crowdsec::cscli_path from Hiera).
 
 Default value: `'/usr/bin/cscli'`
+
+## Data types
+
+### <a name="Crowdsec--AppsecHook"></a>`Crowdsec::AppsecHook`
+
+`apply` holds the expr-lang statements to run, `filter` an optional
+expression restricting when they run.
+
+Alias of
+
+```puppet
+Struct[{
+    Optional['filter'] => String[1],
+    'apply'            => Array[String[1], 1],
+}]
+```
 
