@@ -54,7 +54,7 @@ describe 'crowdsec::appsec' do
               { 'apply' => ['SetMaxBodySize(20971520)', 'SetBodySizeExceededAction("partial")'] },
             ],
             'on_match' => [
-              { 'filter' => "IsInBand == true", 'apply' => ["SetRemediation('captcha')"] },
+              { 'filter' => 'IsInBand == true', 'apply' => ["SetRemediation('captcha')"] },
             ],
           },
           'local/old' => { 'ensure' => 'absent' },
