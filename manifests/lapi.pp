@@ -22,6 +22,7 @@
 # @param server_enabled Whether the local API server runs. Set to false for agent-only nodes that report to a remote LAPI (requires manage_config_local).
 # @param server_tls_cert_file Optional TLS certificate (full chain) for the local API server (requires manage_config_local).
 # @param server_tls_key_file Optional TLS private key for the local API server (requires manage_config_local).
+# @param prometheus Optional Prometheus metrics settings rendered into config.yaml.local (requires manage_config_local); undef keeps the package defaults.
 # @param cscli_path Path to the cscli binary (provided via Hiera).
 #
 # @example Agent-only node reporting to a central LAPI
@@ -50,6 +51,12 @@ class crowdsec::lapi (
   Boolean          $server_enabled           = true,
   Optional[Stdlib::Absolutepath] $server_tls_cert_file = undef,
   Optional[Stdlib::Absolutepath] $server_tls_key_file  = undef,
+  Optional[Struct[{
+    enabled     => Boolean,
+    level       => Enum['full', 'aggregated'],
+    listen_addr => Stdlib::IP::Address::Nosubnet,
+    listen_port => Stdlib::Port,
+  }]]              $prometheus               = undef,
   String           $cscli_path               = '/usr/bin/cscli',
 ) {
   if ($server_tls_cert_file =~ Undef) != ($server_tls_key_file =~ Undef) {
@@ -67,6 +74,7 @@ class crowdsec::lapi (
         'server_listen_uri'    => $server_listen_uri,
         'server_tls_cert_file' => $server_tls_cert_file,
         'server_tls_key_file'  => $server_tls_key_file,
+        'prometheus'           => $prometheus,
       }),
       require => Package['crowdsec'],
       notify  => Service['crowdsec'],

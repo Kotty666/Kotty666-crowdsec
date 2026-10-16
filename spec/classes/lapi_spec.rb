@@ -153,6 +153,46 @@ describe 'crowdsec::lapi' do
     end
   end
 
+  context 'with manage_config_local and explicit Prometheus settings' do
+    let(:params) do
+      {
+        manage_config_local: true,
+        server_enabled: false,
+        prometheus: {
+          'enabled' => true,
+          'level' => 'full',
+          'listen_addr' => '127.0.0.1',
+          'listen_port' => 6060,
+        },
+      }
+    end
+
+    it { is_expected.to compile.with_all_deps }
+
+    it 'renders the prometheus section after the api section' do
+      is_expected.to contain_file('/etc/crowdsec/config.yaml.local').with_content(
+        %r{^api:\n  server:\n    enable: false\nprometheus:\n  enabled: true\n  level: full\n  listen_addr: 127\.0\.0\.1\n  listen_port: 6060\n\z},
+      )
+    end
+  end
+
+  context 'with an invalid Prometheus level' do
+    let(:params) do
+      {
+        manage_config_local: true,
+        prometheus: { 'enabled' => true, 'level' => 'verbose', 'listen_addr' => '127.0.0.1', 'listen_port' => 6060 },
+      }
+    end
+
+    it { is_expected.to compile.and_raise_error(%r{prometheus}) }
+  end
+
+  context 'without prometheus (default)' do
+    let(:params) { { manage_config_local: true } }
+
+    it { is_expected.to contain_file('/etc/crowdsec/config.yaml.local').without_content(%r{prometheus}) }
+  end
+
   context 'with manage_config_local => false (default)' do
     it { is_expected.not_to contain_file('/etc/crowdsec/config.yaml.local') }
   end

@@ -3,6 +3,7 @@
   String                         $server_listen_uri,
   Optional[Stdlib::Absolutepath] $server_tls_cert_file,
   Optional[Stdlib::Absolutepath] $server_tls_key_file,
+  Optional[Hash]                 $prometheus,
 | -%>
 # #####################################################################
 # ACHTUNG: Diese Datei wird von Puppet verwaltet!
@@ -24,4 +25,11 @@ api:
 <% } -%>
 <% } else { -%>
     enable: false
+<% } -%>
+<% if $prometheus { -%>
+prometheus:
+  enabled: <%= $prometheus['enabled'] %>
+  level: <%= $prometheus['level'] %>
+  listen_addr: <%= $prometheus['listen_addr'] %>
+  listen_port: <%= $prometheus['listen_port'] %>
 <% } -%>
