@@ -256,6 +256,7 @@ starts, otherwise it fails with "unknown data source appsec".
 The following parameters are available in the `crowdsec::appsec` class:
 
 * [`listen_addr`](#-crowdsec--appsec--listen_addr)
+* [`auth_timeout`](#-crowdsec--appsec--auth_timeout)
 * [`appsec_configs`](#-crowdsec--appsec--appsec_configs)
 * [`appsec_rules`](#-crowdsec--appsec--appsec_rules)
 * [`local_appsec_configs`](#-crowdsec--appsec--local_appsec_configs)
@@ -267,6 +268,14 @@ Data type: `String`
 Address and port used by the AppSec listener.
 
 Default value: `'127.0.0.1:7422'`
+
+##### <a name="-crowdsec--appsec--auth_timeout"></a>`auth_timeout`
+
+Data type: `Optional[Pattern[/\A[0-9]+(ms|s|m)\z/]]`
+
+Timeout for validating bouncer API keys against the LAPI (Go duration, e.g. `1s`). Raise it when the LAPI is remote; undef keeps the CrowdSec default (200ms).
+
+Default value: `undef`
 
 ##### <a name="-crowdsec--appsec--appsec_configs"></a>`appsec_configs`
 

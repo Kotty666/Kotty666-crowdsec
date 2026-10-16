@@ -154,6 +154,15 @@ appsec_configs:
 
 Einzeln geht es auch direkt über den Defined Type `crowdsec::appsec::local_config` (dann den Namen selbst in `appsec_configs` eintragen – nicht nötig, wenn über die Klasse deklariert).
 
+Läuft die LAPI auf einem entfernten Host, prüft AppSec die Bouncer-Keys dort. Der CrowdSec-Default von 200 ms ist dafür oft zu knapp; mit `auth_timeout` lässt er sich erhöhen:
+
+```puppet
+class { 'crowdsec::appsec':
+  listen_addr  => '127.0.0.1:7422',
+  auth_timeout => '1s',
+}
+```
+
 ### `class { 'crowdsec::bouncer::nginx': }`
 
 Installiert/konfiguriert den Nginx-Bouncer inkl. lokaler Config-Datei und verwaltet standardmäßig den Lua-Hook unter `/etc/nginx/conf.d/crowdsec_nginx.conf`. Zusätzlich stellt die Klasse sicher, dass `/etc/nginx/nginx.conf` diesen `conf.d`-Pfad im `http`-Kontext inkludiert. Das ist wichtig, wenn `puppet-nginx` `conf.d` purged oder `nginx.conf` keinen `conf.d`-Include enthält: Ohne eingebundenen Lua-Hook sieht man nur CrowdSec-Logformate in Nginx, aber der Bouncer wird nicht im Request-Pfad ausgeführt.

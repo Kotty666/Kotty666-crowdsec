@@ -82,4 +82,25 @@ describe 'crowdsec::appsec' do
         .with_content(%r{^appsec_configs:\n  - crowdsecurity/appsec-default\n  - local/nextcloud-upload-tuning\nlabels:})
     end
   end
+
+  context 'without auth_timeout (default)' do
+    it { is_expected.to contain_file('/etc/crowdsec/acquis.d/appsec.yaml').without_content(%r{auth_timeout}) }
+  end
+
+  context 'with auth_timeout for a remote LAPI' do
+    let(:params) { { auth_timeout: '1s' } }
+
+    it { is_expected.to compile.with_all_deps }
+
+    it do
+      is_expected.to contain_file('/etc/crowdsec/acquis.d/appsec.yaml')
+        .with_content(%r{^path: /\nauth_timeout: 1s\nappsec_configs:\n})
+    end
+  end
+
+  context 'with an invalid auth_timeout' do
+    let(:params) { { auth_timeout: 'one second' } }
+
+    it { is_expected.to compile.and_raise_error(%r{auth_timeout}) }
+  end
 end

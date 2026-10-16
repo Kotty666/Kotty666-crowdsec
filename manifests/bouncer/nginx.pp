@@ -120,7 +120,8 @@ class crowdsec::bouncer::nginx (
         owner   => 'root',
         group   => 'root',
         mode    => '0600',
-        content => epp('crowdsec/nginx-bouncer.conf.epp', {
+        # Sensitive keeps the API key and captcha secret out of diffs and reports.
+        content => Sensitive(epp('crowdsec/nginx-bouncer.conf.epp', {
           'api_url'               => $api_url,
           'api_key'               => $api_key,
           'mode'                  => $mode,
@@ -134,7 +135,7 @@ class crowdsec::bouncer::nginx (
           'captcha_secret_key'    => $captcha_secret_key,
           'ban_template_path'     => $ban_template_path,
           'redirect_location'     => $redirect_location,
-        }),
+        })),
         require => File['/etc/crowdsec/bouncers'],
       }
     }
