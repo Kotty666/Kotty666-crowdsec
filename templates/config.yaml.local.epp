@@ -1,0 +1,27 @@
+<%- |
+  Boolean                        $server_enabled,
+  String                         $server_listen_uri,
+  Optional[Stdlib::Absolutepath] $server_tls_cert_file,
+  Optional[Stdlib::Absolutepath] $server_tls_key_file,
+| -%>
+# #####################################################################
+# ACHTUNG: Diese Datei wird von Puppet verwaltet!
+# Manuelle Aenderungen werden beim naechsten Puppet-Lauf ueberschrieben.
+# Aenderungen bitte im Puppet-Modul 'crowdsec' vornehmen.
+#
+# WARNING: This file is managed by Puppet.
+# DO NOT EDIT manually - changes will be overwritten on the next Puppet run.
+# #####################################################################
+api:
+  server:
+<% if $server_enabled { -%>
+    enable: true
+    listen_uri: "<%= $server_listen_uri %>"
+<% if $server_tls_cert_file { -%>
+    tls:
+      cert_file: <%= $server_tls_cert_file %>
+      key_file: <%= $server_tls_key_file %>
+<% } -%>
+<% } else { -%>
+    enable: false
+<% } -%>

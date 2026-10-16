@@ -1,0 +1,28 @@
+<%- |
+  Enum['nftables', 'iptables']   $mode,
+  String                         $api_url,
+  Optional[Sensitive[String[1]]] $api_key,
+  String                         $update_frequency,
+  Enum['DROP', 'REJECT']         $deny_action,
+  Boolean                        $deny_log,
+  String                         $deny_log_prefix,
+  Boolean                        $disable_ipv6,
+| -%>
+# #####################################################################
+# ACHTUNG: Diese Datei wird von Puppet verwaltet!
+# Manuelle Aenderungen werden beim naechsten Puppet-Lauf ueberschrieben.
+# Aenderungen bitte im Puppet-Modul 'crowdsec' vornehmen.
+#
+# WARNING: This file is managed by Puppet.
+# DO NOT EDIT manually - changes will be overwritten on the next Puppet run.
+# #####################################################################
+mode: <%= $mode %>
+api_url: <%= $api_url %>
+<% if $api_key { -%>
+api_key: <%= $api_key.unwrap %>
+<% } -%>
+update_frequency: <%= $update_frequency %>
+deny_action: <%= $deny_action %>
+deny_log: <%= $deny_log %>
+deny_log_prefix: "<%= $deny_log_prefix %>"
+disable_ipv6: <%= $disable_ipv6 %>

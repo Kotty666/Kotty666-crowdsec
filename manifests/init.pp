@@ -16,6 +16,8 @@
 # @param nginx_error_log Path to the Nginx error log (used when nginx_logs and nginx_acquisitions are empty).
 # @param nginx_logs Array of nginx log paths (globs supported) ingested into a single 'nginx' acquisition source. Overrides nginx_access_log/nginx_error_log when non-empty.
 # @param nginx_acquisitions Hash of acquisition-source-name to array of log paths. Each entry produces a separate /etc/crowdsec/acquis.d/nginx-<name>.yaml. Takes precedence over nginx_logs.
+# @param manage_default_acquisition Whether to neutralize the auto-generated /etc/crowdsec/acquis.yaml so only acquis.d/ sources are read.
+#   Avoids double-counted events when the same logs are also declared in acquis.d/ (e.g. via crowdsec::acquisition::file).
 # @param manage_hub_updates Whether to manage periodic hub update/upgrade via cron.
 # @param hub_update_hour Hour at which the hub update cron runs.
 # @param hub_update_minute Minute at which the hub update cron runs.
@@ -38,6 +40,7 @@ class crowdsec (
   String               $nginx_error_log          = '/var/log/nginx/error.log',
   Array[String]        $nginx_logs               = [],
   Hash[String, Array[String]] $nginx_acquisitions = {},
+  Boolean              $manage_default_acquisition = false,
   Boolean              $manage_hub_updates       = true,
   Integer              $hub_update_hour          = 4,
   Integer              $hub_update_minute        = 15,
@@ -188,6 +191,26 @@ class crowdsec (
         filenames => $_nginx_logs,
         type      => 'nginx',
       }
+    }
+  }
+
+  if $manage_default_acquisition {
+    if $manage_engine {
+      $acquisition_require = Package['crowdsec']
+      $acquisition_notify  = Service['crowdsec']
+    } else {
+      $acquisition_require = undef
+      $acquisition_notify  = undef
+    }
+
+    file { '/etc/crowdsec/acquis.yaml':
+      ensure  => file,
+      owner   => 'root',
+      group   => 'root',
+      mode    => '0644',
+      content => epp('crowdsec/acquis-default.yaml.epp'),
+      require => $acquisition_require,
+      notify  => $acquisition_notify,
     }
   }
 
