@@ -17,7 +17,10 @@ Ein modulares Puppet-Framework zur Installation und Verwaltung von CrowdSec.
   - [`class { 'crowdsec::appsec': }`](#class--crowdsecappsec-)
   - [`class { 'crowdsec::bouncer::nginx': }`](#class--crowdsecbouncernginx-)
   - [`class { 'crowdsec::bouncer::openresty': }`](#class--crowdsecbounceropenresty-)
+  - [`class { 'crowdsec::bouncer::firewall': }`](#class--crowdsecbouncerfirewall-)
+  - [`crowdsec::allowlist {}`](#crowdsecallowlist-)
   - [Zentrale LAPI mit entfernten Bouncern via Hiera](#zentrale-lapi-mit-entfernten-bouncern-via-hiera)
+  - [Agent-only Nodes an einer zentralen TLS-LAPI](#agent-only-nodes-an-einer-zentralen-tls-lapi)
 - [Kompositionsbeispiele](#kompositionsbeispiele)
 - [Testing & CI](#testing--ci)
 - [Referenz](#referenz)
@@ -151,6 +154,15 @@ appsec_configs:
 
 Einzeln geht es auch direkt über den Defined Type `crowdsec::appsec::local_config` (dann den Namen selbst in `appsec_configs` eintragen – nicht nötig, wenn über die Klasse deklariert).
 
+Läuft die LAPI auf einem entfernten Host, prüft AppSec die Bouncer-Keys dort. Der CrowdSec-Default von 200 ms ist dafür oft zu knapp; mit `auth_timeout` lässt er sich erhöhen:
+
+```puppet
+class { 'crowdsec::appsec':
+  listen_addr  => '127.0.0.1:7422',
+  auth_timeout => '1s',
+}
+```
+
 ### `class { 'crowdsec::bouncer::nginx': }`
 
 Installiert/konfiguriert den Nginx-Bouncer inkl. lokaler Config-Datei und verwaltet standardmäßig den Lua-Hook unter `/etc/nginx/conf.d/crowdsec_nginx.conf`. Zusätzlich stellt die Klasse sicher, dass `/etc/nginx/nginx.conf` diesen `conf.d`-Pfad im `http`-Kontext inkludiert. Das ist wichtig, wenn `puppet-nginx` `conf.d` purged oder `nginx.conf` keinen `conf.d`-Include enthält: Ohne eingebundenen Lua-Hook sieht man nur CrowdSec-Logformate in Nginx, aber der Bouncer wird nicht im Request-Pfad ausgeführt.
@@ -180,6 +192,30 @@ class { 'crowdsec::bouncer::openresty':
   mode                 => 'stream',
   manage_nginx_snippet => true,
   nginx_snippet_path   => '/etc/nginx/conf.d/crowdsec_openresty.conf',
+}
+```
+
+### `class { 'crowdsec::bouncer::firewall': }`
+
+Installiert den Firewall-Bouncer (`crowdsec-firewall-bouncer-nftables` bzw. `-iptables`) und schreibt alle verwalteten Einstellungen nach `/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml.local`; die Paket-Config bleibt unangetastet. Der Bouncer funktioniert auch ohne lokale Engine. Mit `deny_log: true` (Default) wird jedes von CrowdSec verworfene Paket mit dem Prefix `crowdsec: ` im Kernel-Log protokolliert. Der Dateiinhalt ist `Sensitive`, der API-Key erscheint nicht in Diffs/Reports.
+
+```puppet
+class { 'crowdsec::bouncer::firewall':
+  mode    => 'nftables',
+  api_url => 'https://lapi.example.com:8080/',
+  api_key => Sensitive('REPLACE_WITH_LONG_RANDOM_KEY'),
+}
+```
+
+Hinweis: Wer die Host-Firewall mit `puppet/nftables` verwaltet, sollte `nftables::noflush_tables: ['ip-crowdsec', 'ip6-crowdsec6']` setzen, damit ein Firewall-Reload die Bouncer-Tabellen nicht leert.
+
+### `crowdsec::allowlist {}`
+
+Pflegt eine zentrale LAPI-Allowlist (`cscli allowlists`, CrowdSec >= 1.6.8). Einträge gelten für alle angebundenen Bouncer und auch für Community-Blocklisten. Nur auf dem LAPI-Host verwenden. Einträge werden nur hinzugefügt; entfernte Einträge bitte mit `cscli allowlists remove <name> <wert>` löschen.
+
+```puppet
+crowdsec::allowlist { 'office':
+  entries => ['192.0.2.10', '198.51.100.0/27', '2001:db8::/48'],
 }
 ```
 
@@ -222,6 +258,27 @@ crowdsec::bouncer::openresty::extra_config:
 ```
 
 Vollständige Hiera-Beispiele liegen unter `examples/hiera/nodes/`. Der OpenResty-Bouncer braucht zusätzlich den Lua-Hook im OpenResty-`http`-Kontext. Wenn OpenResty über `puppet-nginx` verwaltet wird, ist der pragmatische Weg: `manage_nginx_snippet: true` setzen und `nginx_snippet_path` auf einen Pfad legen, den dein `nginx.conf` im `http`-Kontext inkludiert (bei `puppet-nginx` typischerweise `/etc/nginx/conf.d/*.conf`). So bleibt die Datei trotz `confd_purge` im Puppet-Katalog. Wenn dein OpenResty bereits eigene `init_by_lua*`/`access_by_lua*`-Blöcke im gleichen Kontext nutzt, darfst du den Snippet nicht zusätzlich laden; merge dann die generierten CrowdSec-Blöcke in dein eigenes OpenResty-Profil oder setze `manage_nginx_snippet: false`.
+
+### Agent-only Nodes an einer zentralen TLS-LAPI
+
+`crowdsec::lapi` kann `/etc/crowdsec/config.yaml.local` verwalten (`manage_config_local: true`). Damit lässt sich der lokale API-Server auf reinen Agent-Nodes abschalten bzw. auf dem zentralen Host mit TLS auf allen Interfaces betreiben. Zusätzlich neutralisiert `crowdsec::manage_default_acquisition: true` die bei der Installation auto-generierte `acquis.yaml`, damit Logs, die per `crowdsec::acquisition::file` in `acquis.d/` deklariert sind, nicht doppelt gezählt werden.
+
+```yaml
+# Zentraler LAPI-Host
+crowdsec::lapi::manage_config_local: true
+crowdsec::lapi::server_listen_uri: '[::]:8080'
+crowdsec::lapi::server_tls_cert_file: '/etc/letsencrypt/live/lapi.example.com/fullchain.pem'
+crowdsec::lapi::server_tls_key_file: '/etc/letsencrypt/live/lapi.example.com/privkey.pem'
+
+# Agent-Node
+crowdsec::lapi::manage_config_local: true
+crowdsec::lapi::server_enabled: false
+crowdsec::lapi::url: 'https://lapi.example.com:8080/'
+crowdsec::lapi::login: 'node1.example.com'
+crowdsec::lapi::password: 'REPLACE_WITH_LONG_RANDOM_PASSWORD'
+```
+
+Die Machine-Credentials werden auf dem LAPI-Host mit `crowdsec::machine` (bzw. `crowdsec::machine_credentials`) registriert. Die Credentials-Datei ist `Sensitive`.
 
 ## Kompositionsbeispiele
 

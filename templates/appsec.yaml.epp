@@ -1,4 +1,4 @@
-<%- | String $listen_addr, Array[String] $appsec_configs | -%>
+<%- | String $listen_addr, Optional[String] $auth_timeout, Array[String] $appsec_configs | -%>
 # #####################################################################
 # ACHTUNG: Diese Datei wird von Puppet verwaltet!
 # Manuelle Aenderungen werden beim naechsten Puppet-Lauf ueberschrieben.
@@ -10,6 +10,9 @@
 source: appsec
 listen_addr: <%= $listen_addr %>
 path: /
+<% if $auth_timeout { -%>
+auth_timeout: <%= $auth_timeout %>
+<% } -%>
 appsec_configs:
 <% $appsec_configs.each |String $appsec_config| { -%>
   - <%= $appsec_config %>

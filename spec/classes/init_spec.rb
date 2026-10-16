@@ -110,6 +110,39 @@ describe 'crowdsec' do
         end
       end
 
+      context 'with manage_default_acquisition => true' do
+        let(:params) { { manage_default_acquisition: true } }
+
+        it { is_expected.to compile.with_all_deps }
+
+        it 'replaces the auto-detected acquis.yaml with a comment-only file' do
+          is_expected.to contain_file('/etc/crowdsec/acquis.yaml').with(
+            ensure: 'file',
+            owner: 'root',
+            group: 'root',
+            mode: '0644',
+            require: 'Package[crowdsec]',
+            notify: 'Service[crowdsec]',
+          ).with_content(
+            <<~CONTENT,
+              # #####################################################################
+              # ACHTUNG: Diese Datei wird von Puppet verwaltet!
+              # Manuelle Aenderungen werden beim naechsten Puppet-Lauf ueberschrieben.
+              # Aenderungen bitte im Puppet-Modul 'crowdsec' vornehmen.
+              #
+              # WARNING: This file is managed by Puppet.
+              # DO NOT EDIT manually - changes will be overwritten on the next Puppet run.
+              # #####################################################################
+              # Intentionally empty: all log sources are managed in /etc/crowdsec/acquis.d/.
+            CONTENT
+          )
+        end
+      end
+
+      context 'with manage_default_acquisition => false (default)' do
+        it { is_expected.not_to contain_file('/etc/crowdsec/acquis.yaml') }
+      end
+
       context 'with bouncer API keys' do
         let(:params) do
           {

@@ -8,6 +8,7 @@
 
 * [`crowdsec`](#crowdsec): Manages the CrowdSec stack and its core components.
 * [`crowdsec::appsec`](#crowdsec--appsec): Manages CrowdSec AppSec acquisition configuration.
+* [`crowdsec::bouncer::firewall`](#crowdsec--bouncer--firewall): Installs and configures the CrowdSec firewall bouncer (nftables or iptables).
 * [`crowdsec::bouncer::nginx`](#crowdsec--bouncer--nginx): Installs and configures the CrowdSec NGINX bouncer.
 * [`crowdsec::bouncer::openresty`](#crowdsec--bouncer--openresty): Installs and configures the CrowdSec OpenResty bouncer package.
 * [`crowdsec::engine`](#crowdsec--engine): Installs and manages the CrowdSec engine service.
@@ -17,6 +18,7 @@
 ### Defined types
 
 * [`crowdsec::acquisition::file`](#crowdsec--acquisition--file): Manages an acquisition source file for log ingestion.
+* [`crowdsec::allowlist`](#crowdsec--allowlist): Manages a centralized CrowdSec LAPI allowlist via `cscli allowlists`.
 * [`crowdsec::appsec::config`](#crowdsec--appsec--config): Installs a CrowdSec AppSec config using `cscli`.
 * [`crowdsec::appsec::local_config`](#crowdsec--appsec--local_config): Manages a local (non-hub) CrowdSec AppSec config file.
 * [`crowdsec::appsec::rule`](#crowdsec--appsec--rule): Installs a CrowdSec AppSec rule using `cscli`.
@@ -57,6 +59,7 @@ The following parameters are available in the `crowdsec` class:
 * [`nginx_error_log`](#-crowdsec--nginx_error_log)
 * [`nginx_logs`](#-crowdsec--nginx_logs)
 * [`nginx_acquisitions`](#-crowdsec--nginx_acquisitions)
+* [`manage_default_acquisition`](#-crowdsec--manage_default_acquisition)
 * [`manage_hub_updates`](#-crowdsec--manage_hub_updates)
 * [`hub_update_hour`](#-crowdsec--hub_update_hour)
 * [`hub_update_minute`](#-crowdsec--hub_update_minute)
@@ -191,6 +194,15 @@ Hash of acquisition-source-name to array of log paths. Each entry produces a sep
 
 Default value: `{}`
 
+##### <a name="-crowdsec--manage_default_acquisition"></a>`manage_default_acquisition`
+
+Data type: `Boolean`
+
+Whether to neutralize the auto-generated /etc/crowdsec/acquis.yaml so only acquis.d/ sources are read.
+Avoids double-counted events when the same logs are also declared in acquis.d/ (e.g. via crowdsec::acquisition::file).
+
+Default value: `false`
+
 ##### <a name="-crowdsec--manage_hub_updates"></a>`manage_hub_updates`
 
 Data type: `Boolean`
@@ -244,6 +256,7 @@ starts, otherwise it fails with "unknown data source appsec".
 The following parameters are available in the `crowdsec::appsec` class:
 
 * [`listen_addr`](#-crowdsec--appsec--listen_addr)
+* [`auth_timeout`](#-crowdsec--appsec--auth_timeout)
 * [`appsec_configs`](#-crowdsec--appsec--appsec_configs)
 * [`appsec_rules`](#-crowdsec--appsec--appsec_rules)
 * [`local_appsec_configs`](#-crowdsec--appsec--local_appsec_configs)
@@ -255,6 +268,14 @@ Data type: `String`
 Address and port used by the AppSec listener.
 
 Default value: `'127.0.0.1:7422'`
+
+##### <a name="-crowdsec--appsec--auth_timeout"></a>`auth_timeout`
+
+Data type: `Optional[Pattern[/\A[0-9]+(ms|s|m)\z/]]`
+
+Timeout for validating bouncer API keys against the LAPI (Go duration, e.g. `1s`). Raise it when the LAPI is remote; undef keeps the CrowdSec default (200ms).
+
+Default value: `undef`
 
 ##### <a name="-crowdsec--appsec--appsec_configs"></a>`appsec_configs`
 
@@ -279,6 +300,141 @@ Data type: `Hash[String[1], Hash]`
 Local AppSec configs keyed by config name; each value holds `crowdsec::appsec::local_config` parameters. Present entries are appended to `appsec_configs` in acquis.d/appsec.yaml (after the hub configs, so they can override them).
 
 Default value: `{}`
+
+### <a name="crowdsec--bouncer--firewall"></a>`crowdsec::bouncer::firewall`
+
+The package-provided `/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml`
+is left untouched; all managed settings are written to the `.yaml.local`
+override file, which the bouncer merges on start. This keeps package
+upgrades conflict-free.
+
+The bouncer can run on a host without a local CrowdSec engine. Point
+`api_url` to the (remote) LAPI and supply an API key registered there
+(see `crowdsec::bouncer::api_key`).
+
+#### Examples
+
+##### Bouncer against a remote LAPI
+
+```puppet
+class { 'crowdsec::bouncer::firewall':
+  api_url => 'https://lapi.example.com:8080/',
+  api_key => Sensitive('0123456789abcdef'),
+}
+```
+
+#### Parameters
+
+The following parameters are available in the `crowdsec::bouncer::firewall` class:
+
+* [`ensure`](#-crowdsec--bouncer--firewall--ensure)
+* [`mode`](#-crowdsec--bouncer--firewall--mode)
+* [`package_name`](#-crowdsec--bouncer--firewall--package_name)
+* [`service_name`](#-crowdsec--bouncer--firewall--service_name)
+* [`config_path`](#-crowdsec--bouncer--firewall--config_path)
+* [`api_url`](#-crowdsec--bouncer--firewall--api_url)
+* [`api_key`](#-crowdsec--bouncer--firewall--api_key)
+* [`update_frequency`](#-crowdsec--bouncer--firewall--update_frequency)
+* [`deny_action`](#-crowdsec--bouncer--firewall--deny_action)
+* [`deny_log`](#-crowdsec--bouncer--firewall--deny_log)
+* [`deny_log_prefix`](#-crowdsec--bouncer--firewall--deny_log_prefix)
+* [`disable_ipv6`](#-crowdsec--bouncer--firewall--disable_ipv6)
+
+##### <a name="-crowdsec--bouncer--firewall--ensure"></a>`ensure`
+
+Data type: `Enum['installed', 'latest', 'absent']`
+
+Desired package state for the firewall bouncer.
+
+Default value: `'installed'`
+
+##### <a name="-crowdsec--bouncer--firewall--mode"></a>`mode`
+
+Data type: `Enum['nftables', 'iptables']`
+
+Firewall backend. Selects the package flavour unless `package_name` is set.
+
+Default value: `'nftables'`
+
+##### <a name="-crowdsec--bouncer--firewall--package_name"></a>`package_name`
+
+Data type: `Optional[String[1]]`
+
+OS package name. Defaults to `crowdsec-firewall-bouncer-<mode>`.
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--firewall--service_name"></a>`service_name`
+
+Data type: `String[1]`
+
+Systemd service name of the bouncer.
+
+Default value: `'crowdsec-firewall-bouncer'`
+
+##### <a name="-crowdsec--bouncer--firewall--config_path"></a>`config_path`
+
+Data type: `Stdlib::Absolutepath`
+
+Path to the local override file.
+
+Default value: `'/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml.local'`
+
+##### <a name="-crowdsec--bouncer--firewall--api_url"></a>`api_url`
+
+Data type: `Stdlib::HTTPUrl`
+
+URL of the CrowdSec Local API (trailing slash recommended).
+
+Default value: `'http://127.0.0.1:8080/'`
+
+##### <a name="-crowdsec--bouncer--firewall--api_key"></a>`api_key`
+
+Data type: `Optional[Sensitive[String[1]]]`
+
+API key registered for this bouncer on the LAPI.
+
+Default value: `undef`
+
+##### <a name="-crowdsec--bouncer--firewall--update_frequency"></a>`update_frequency`
+
+Data type: `Pattern[/\A[0-9]+(ms|s|m|h)\z/]`
+
+Poll interval for decisions in stream mode (Go duration, e.g. `10s`).
+
+Default value: `'10s'`
+
+##### <a name="-crowdsec--bouncer--firewall--deny_action"></a>`deny_action`
+
+Data type: `Enum['DROP', 'REJECT']`
+
+Action applied to banned IPs.
+
+Default value: `'DROP'`
+
+##### <a name="-crowdsec--bouncer--firewall--deny_log"></a>`deny_log`
+
+Data type: `Boolean`
+
+Whether dropped packets of banned IPs are logged (kernel log).
+
+Default value: `true`
+
+##### <a name="-crowdsec--bouncer--firewall--deny_log_prefix"></a>`deny_log_prefix`
+
+Data type: `String[1]`
+
+Log prefix used when `deny_log` is enabled.
+
+Default value: `'crowdsec: '`
+
+##### <a name="-crowdsec--bouncer--firewall--disable_ipv6"></a>`disable_ipv6`
+
+Data type: `Boolean`
+
+Whether IPv6 handling is disabled.
+
+Default value: `false`
 
 ### <a name="crowdsec--bouncer--nginx"></a>`crowdsec::bouncer::nginx`
 
@@ -964,6 +1120,31 @@ Two modes:
   re-registers the local watcher whenever the login in the credentials
   file is missing from `cscli machines list`.
 
+#### Examples
+
+##### Agent-only node reporting to a central LAPI
+
+```puppet
+class { 'crowdsec::lapi':
+  url                 => 'https://lapi.example.com:8080/',
+  login               => $trusted['certname'],
+  password            => 'secret',
+  manage_config_local => true,
+  server_enabled      => false,
+}
+```
+
+##### Central LAPI listening with TLS on all interfaces
+
+```puppet
+class { 'crowdsec::lapi':
+  manage_config_local  => true,
+  server_listen_uri    => '[::]:8080',
+  server_tls_cert_file => '/etc/letsencrypt/live/lapi.example.com/fullchain.pem',
+  server_tls_key_file  => '/etc/letsencrypt/live/lapi.example.com/privkey.pem',
+}
+```
+
 #### Parameters
 
 The following parameters are available in the `crowdsec::lapi` class:
@@ -973,6 +1154,10 @@ The following parameters are available in the `crowdsec::lapi` class:
 * [`password`](#-crowdsec--lapi--password)
 * [`manage_server_listen_uri`](#-crowdsec--lapi--manage_server_listen_uri)
 * [`server_listen_uri`](#-crowdsec--lapi--server_listen_uri)
+* [`manage_config_local`](#-crowdsec--lapi--manage_config_local)
+* [`server_enabled`](#-crowdsec--lapi--server_enabled)
+* [`server_tls_cert_file`](#-crowdsec--lapi--server_tls_cert_file)
+* [`server_tls_key_file`](#-crowdsec--lapi--server_tls_key_file)
 * [`cscli_path`](#-crowdsec--lapi--cscli_path)
 
 ##### <a name="-crowdsec--lapi--url"></a>`url`
@@ -1014,6 +1199,38 @@ Data type: `String`
 Address and port where the local API listens for machines and bouncers.
 
 Default value: `'127.0.0.1:8080'`
+
+##### <a name="-crowdsec--lapi--manage_config_local"></a>`manage_config_local`
+
+Data type: `Boolean`
+
+Whether to manage /etc/crowdsec/config.yaml.local (LAPI server settings overriding the package config).
+
+Default value: `false`
+
+##### <a name="-crowdsec--lapi--server_enabled"></a>`server_enabled`
+
+Data type: `Boolean`
+
+Whether the local API server runs. Set to false for agent-only nodes that report to a remote LAPI (requires manage_config_local).
+
+Default value: `true`
+
+##### <a name="-crowdsec--lapi--server_tls_cert_file"></a>`server_tls_cert_file`
+
+Data type: `Optional[Stdlib::Absolutepath]`
+
+Optional TLS certificate (full chain) for the local API server (requires manage_config_local).
+
+Default value: `undef`
+
+##### <a name="-crowdsec--lapi--server_tls_key_file"></a>`server_tls_key_file`
+
+Data type: `Optional[Stdlib::Absolutepath]`
+
+Optional TLS private key for the local API server (requires manage_config_local).
+
+Default value: `undef`
 
 ##### <a name="-crowdsec--lapi--cscli_path"></a>`cscli_path`
 
@@ -1144,6 +1361,74 @@ Data type: `String`
 Acquisition type used by CrowdSec parsers.
 
 Default value: `'nginx'`
+
+### <a name="crowdsec--allowlist"></a>`crowdsec::allowlist`
+
+Allowlists (CrowdSec >= 1.6.8) live in the LAPI database and prevent
+decisions - including community blocklist entries - from being applied
+to the listed IPs/ranges by any bouncer connected to this LAPI. Use it
+on the LAPI host only.
+
+Entries are only added. Entries removed from `entries` stay in the
+allowlist until removed with `cscli allowlists remove <name> <value>`.
+
+#### Examples
+
+##### Allow office networks
+
+```puppet
+crowdsec::allowlist { 'office':
+  entries => ['192.0.2.10', '2001:db8::/48'],
+}
+```
+
+#### Parameters
+
+The following parameters are available in the `crowdsec::allowlist` defined type:
+
+* [`entries`](#-crowdsec--allowlist--entries)
+* [`allowlist_name`](#-crowdsec--allowlist--allowlist_name)
+* [`description`](#-crowdsec--allowlist--description)
+* [`comment`](#-crowdsec--allowlist--comment)
+* [`cscli_path`](#-crowdsec--allowlist--cscli_path)
+
+##### <a name="-crowdsec--allowlist--entries"></a>`entries`
+
+Data type: `Array[Stdlib::IP::Address]`
+
+IPv4/IPv6 addresses or CIDR ranges to allow.
+
+##### <a name="-crowdsec--allowlist--allowlist_name"></a>`allowlist_name`
+
+Data type: `Pattern[/\A[A-Za-z0-9_.-]+\z/]`
+
+Name of the allowlist; defaults to the resource title.
+
+Default value: `$title`
+
+##### <a name="-crowdsec--allowlist--description"></a>`description`
+
+Data type: `Pattern[/\A[^']+\z/]`
+
+Description stored with the allowlist.
+
+Default value: `'Managed by Puppet'`
+
+##### <a name="-crowdsec--allowlist--comment"></a>`comment`
+
+Data type: `Pattern[/\A[^']+\z/]`
+
+Comment stored with each entry.
+
+Default value: `'managed by puppet'`
+
+##### <a name="-crowdsec--allowlist--cscli_path"></a>`cscli_path`
+
+Data type: `Stdlib::Absolutepath`
+
+Path to the cscli binary.
+
+Default value: `'/usr/bin/cscli'`
 
 ### <a name="crowdsec--appsec--config"></a>`crowdsec::appsec::config`
 

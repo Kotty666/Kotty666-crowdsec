@@ -72,6 +72,12 @@ describe 'crowdsec::lapi' do
       )
     end
 
+    it 'renders the credentials as sensitive content' do
+      resource = catalogue.resource('file', '/etc/crowdsec/local_api_credentials.yaml')
+      expect(resource.sensitive_parameters).to include(:content)
+      expect(resource[:content]).to match(%r{^password: s3cr3t$})
+    end
+
     it 'does not run the local watcher registration in remote LAPI mode' do
       is_expected.not_to contain_exec('crowdsec-register-local-watcher')
     end
@@ -87,5 +93,78 @@ describe 'crowdsec::lapi' do
     it 'falls back to local LAPI self-heal' do
       is_expected.to contain_exec('crowdsec-register-local-watcher')
     end
+  end
+
+  context 'with manage_config_local in agent-only mode' do
+    let(:params) do
+      {
+        url: 'https://lapi.example.com:8080/',
+        login: 'node1.example.com',
+        password: 's3cr3t',
+        manage_config_local: true,
+        server_enabled: false,
+      }
+    end
+
+    it { is_expected.to compile.with_all_deps }
+
+    it 'disables the local API server via config.yaml.local' do
+      is_expected.to contain_file('/etc/crowdsec/config.yaml.local').with(
+        ensure: 'file',
+        owner: 'root',
+        group: 'root',
+        mode: '0644',
+        require: 'Package[crowdsec]',
+        notify: 'Service[crowdsec]',
+      ).with_content(
+        <<~CONTENT,
+          # #####################################################################
+          # ACHTUNG: Diese Datei wird von Puppet verwaltet!
+          # Manuelle Aenderungen werden beim naechsten Puppet-Lauf ueberschrieben.
+          # Aenderungen bitte im Puppet-Modul 'crowdsec' vornehmen.
+          #
+          # WARNING: This file is managed by Puppet.
+          # DO NOT EDIT manually - changes will be overwritten on the next Puppet run.
+          # #####################################################################
+          api:
+            server:
+              enable: false
+        CONTENT
+      )
+    end
+  end
+
+  context 'with manage_config_local and TLS on a public listener' do
+    let(:params) do
+      {
+        manage_config_local: true,
+        server_listen_uri: '[::]:8080',
+        server_tls_cert_file: '/etc/letsencrypt/live/lapi.example.com/fullchain.pem',
+        server_tls_key_file: '/etc/letsencrypt/live/lapi.example.com/privkey.pem',
+      }
+    end
+
+    it { is_expected.to compile.with_all_deps }
+
+    it 'renders listen_uri and TLS settings' do
+      is_expected.to contain_file('/etc/crowdsec/config.yaml.local').with_content(
+        %r{^api:\n  server:\n    enable: true\n    listen_uri: "\[::\]:8080"\n    tls:\n      cert_file: /etc/letsencrypt/live/lapi\.example\.com/fullchain\.pem\n      key_file: /etc/letsencrypt/live/lapi\.example\.com/privkey\.pem\n\z},
+      )
+    end
+  end
+
+  context 'with manage_config_local => false (default)' do
+    it { is_expected.not_to contain_file('/etc/crowdsec/config.yaml.local') }
+  end
+
+  context 'with a TLS certificate but no key' do
+    let(:params) do
+      {
+        manage_config_local: true,
+        server_tls_cert_file: '/etc/ssl/cert.pem',
+      }
+    end
+
+    it { is_expected.to compile.and_raise_error(%r{server_tls_cert_file and server_tls_key_file must be set together}) }
   end
 end

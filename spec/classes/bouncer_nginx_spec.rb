@@ -21,6 +21,11 @@ describe 'crowdsec::bouncer::nginx' do
         )
       end
 
+      it 'marks the bouncer config as sensitive so the API key never shows up in diffs' do
+        resource = catalogue.resource('file', '/etc/crowdsec/bouncers/crowdsec-nginx-bouncer.conf.local')
+        expect(resource.sensitive_parameters).to include(:content)
+      end
+
       it do
         is_expected.to contain_file('/etc/crowdsec/bouncers').with(
           ensure: 'directory',
