@@ -15,6 +15,10 @@ define crowdsec::bouncer::api_key (
   exec { "crowdsec-bouncer-add-${bouncer_name}":
     command => "${cscli_path} bouncers add ${bouncer_name} --key ${api_key}",
     unless  => "${cscli_path} bouncers inspect ${bouncer_name} >/dev/null 2>&1",
-    require => Service['crowdsec'],
+    # cscli writes directly to the LAPI database, so the service does not
+    # have to run. Registering before (re)starting it avoids a deadlock when
+    # the local agent itself authenticates with these credentials.
+    require => Package['crowdsec'],
+    before  => Service['crowdsec'],
   }
 }
