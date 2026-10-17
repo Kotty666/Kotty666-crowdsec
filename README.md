@@ -154,7 +154,7 @@ appsec_configs:
 
 Einzeln geht es auch direkt über den Defined Type `crowdsec::appsec::local_config` (dann den Namen selbst in `appsec_configs` eintragen – nicht nötig, wenn über die Klasse deklariert).
 
-Läuft die LAPI auf einem entfernten Host, prüft AppSec die Bouncer-Keys dort. Der CrowdSec-Default von 200 ms ist dafür oft zu knapp; mit `auth_timeout` lässt er sich erhöhen:
+Läuft die LAPI auf einem entfernten Host, prüft AppSec die Bouncer-Keys dort. Der CrowdSec-Default von 200 ms ist dafür oft zu knapp; mit `auth_timeout` lässt er sich erhöhen (erst ab CrowdSec 1.8.0 – ältere Versionen starten mit dieser Option nicht):
 
 ```puppet
 class { 'crowdsec::appsec':

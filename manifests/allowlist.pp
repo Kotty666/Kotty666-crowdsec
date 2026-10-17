@@ -29,7 +29,8 @@ define crowdsec::allowlist (
     command => "${cscli_path} allowlists create ${allowlist_name} --description '${description}'",
     unless  => "${cscli_path} allowlists list -o raw 2>/dev/null | cut -d, -f1 | grep -Fxq ${allowlist_name}",
     path    => ['/usr/bin', '/bin'],
-    require => Service['crowdsec'],
+    # cscli writes directly to the LAPI database; no running service needed.
+    require => Package['crowdsec'],
   }
 
   $entries.unique.each |Stdlib::IP::Address $entry| {
