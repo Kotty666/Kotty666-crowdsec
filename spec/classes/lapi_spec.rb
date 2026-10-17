@@ -72,6 +72,10 @@ describe 'crowdsec::lapi' do
       )
     end
 
+    it 'writes the credentials only once the package created /etc/crowdsec' do
+      is_expected.to contain_file('/etc/crowdsec/local_api_credentials.yaml').that_requires('Package[crowdsec]')
+    end
+
     it 'renders the credentials as sensitive content' do
       resource = catalogue.resource('file', '/etc/crowdsec/local_api_credentials.yaml')
       expect(resource.sensitive_parameters).to include(:content)

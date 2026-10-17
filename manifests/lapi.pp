@@ -104,6 +104,8 @@ class crowdsec::lapi (
         'login'    => $login,
         'password' => $password,
       })),
+      # /etc/crowdsec is created by the package, not managed as a resource.
+      require => Package['crowdsec'],
       notify  => Service['crowdsec'],
     }
   } else {
