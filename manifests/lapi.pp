@@ -23,6 +23,9 @@
 # @param server_tls_cert_file Optional TLS certificate (full chain) for the local API server (requires manage_config_local).
 # @param server_tls_key_file Optional TLS private key for the local API server (requires manage_config_local).
 # @param prometheus Optional Prometheus metrics settings rendered into config.yaml.local (requires manage_config_local); undef keeps the package defaults.
+# @param db_flush Optional alert retention of the LAPI database (`db_config.flush`) rendered into config.yaml.local
+#   (requires manage_config_local): `max_items` is the maximum number of alerts kept, `max_age` their maximum age
+#   (e.g. `14d`, units s/m/h/d). Unset keys and undef keep the package defaults (5000 alerts, 7d).
 # @param cscli_path Path to the cscli binary (provided via Hiera).
 #
 # @example Agent-only node reporting to a central LAPI
@@ -41,6 +44,12 @@
 #     server_tls_cert_file => '/etc/letsencrypt/live/lapi.example.com/fullchain.pem',
 #     server_tls_key_file  => '/etc/letsencrypt/live/lapi.example.com/privkey.pem',
 #   }
+#
+# @example Central LAPI keeping alerts for 14 days
+#   class { 'crowdsec::lapi':
+#     manage_config_local => true,
+#     db_flush            => { 'max_items' => 100000, 'max_age' => '14d' },
+#   }
 class crowdsec::lapi (
   String           $url                      = 'http://127.0.0.1:8080',
   Optional[String] $login                    = undef,
@@ -57,6 +66,10 @@ class crowdsec::lapi (
     listen_addr => Stdlib::IP::Address::Nosubnet,
     listen_port => Stdlib::Port,
   }]]              $prometheus               = undef,
+  Optional[Struct[{
+    Optional[max_items] => Integer[1],
+    Optional[max_age]   => Pattern[/\A[0-9]+[smhd]\z/],
+  }]]              $db_flush                 = undef,
   String           $cscli_path               = '/usr/bin/cscli',
 ) {
   if ($server_tls_cert_file =~ Undef) != ($server_tls_key_file =~ Undef) {
@@ -75,6 +88,7 @@ class crowdsec::lapi (
         'server_tls_cert_file' => $server_tls_cert_file,
         'server_tls_key_file'  => $server_tls_key_file,
         'prometheus'           => $prometheus,
+        'db_flush'             => $db_flush,
       }),
       require => Package['crowdsec'],
       notify  => Service['crowdsec'],
