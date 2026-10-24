@@ -13,7 +13,8 @@ describe 'crowdsec::machine' do
     is_expected.to contain_exec('crowdsec-machine-add-openresty-proxy-01').with(
       command: '/usr/bin/cscli machines add openresty-proxy-01 --password \'secret-password\' -f - >/dev/null',
       unless: '/usr/bin/cscli machines list -o raw 2>/dev/null | cut -d, -f1 | grep -Fxq openresty-proxy-01',
-      require: 'Service[crowdsec]',
+      require: 'Package[crowdsec]',
+      before: 'Service[crowdsec]',
     )
   end
 end

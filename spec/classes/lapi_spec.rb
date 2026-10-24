@@ -72,6 +72,10 @@ describe 'crowdsec::lapi' do
       )
     end
 
+    it 'writes the credentials only once the package created /etc/crowdsec' do
+      is_expected.to contain_file('/etc/crowdsec/local_api_credentials.yaml').that_requires('Package[crowdsec]')
+    end
+
     it 'renders the credentials as sensitive content' do
       resource = catalogue.resource('file', '/etc/crowdsec/local_api_credentials.yaml')
       expect(resource.sensitive_parameters).to include(:content)
@@ -151,6 +155,93 @@ describe 'crowdsec::lapi' do
         %r{^api:\n  server:\n    enable: true\n    listen_uri: "\[::\]:8080"\n    tls:\n      cert_file: /etc/letsencrypt/live/lapi\.example\.com/fullchain\.pem\n      key_file: /etc/letsencrypt/live/lapi\.example\.com/privkey\.pem\n\z},
       )
     end
+  end
+
+  context 'with manage_config_local and explicit Prometheus settings' do
+    let(:params) do
+      {
+        manage_config_local: true,
+        server_enabled: false,
+        prometheus: {
+          'enabled' => true,
+          'level' => 'full',
+          'listen_addr' => '127.0.0.1',
+          'listen_port' => 6060,
+        },
+      }
+    end
+
+    it { is_expected.to compile.with_all_deps }
+
+    it 'renders the prometheus section after the api section' do
+      is_expected.to contain_file('/etc/crowdsec/config.yaml.local').with_content(
+        %r{^api:\n  server:\n    enable: false\nprometheus:\n  enabled: true\n  level: full\n  listen_addr: 127\.0\.0\.1\n  listen_port: 6060\n\z},
+      )
+    end
+  end
+
+  context 'with an invalid Prometheus level' do
+    let(:params) do
+      {
+        manage_config_local: true,
+        prometheus: { 'enabled' => true, 'level' => 'verbose', 'listen_addr' => '127.0.0.1', 'listen_port' => 6060 },
+      }
+    end
+
+    it { is_expected.to compile.and_raise_error(%r{prometheus}) }
+  end
+
+  context 'without prometheus (default)' do
+    let(:params) { { manage_config_local: true } }
+
+    it { is_expected.to contain_file('/etc/crowdsec/config.yaml.local').without_content(%r{prometheus}) }
+  end
+
+  context 'with manage_config_local, Prometheus and alert retention' do
+    let(:params) do
+      {
+        manage_config_local: true,
+        server_enabled: false,
+        prometheus: { 'enabled' => true, 'level' => 'full', 'listen_addr' => '127.0.0.1', 'listen_port' => 6060 },
+        db_flush: { 'max_items' => 100_000, 'max_age' => '14d' },
+      }
+    end
+
+    it { is_expected.to compile.with_all_deps }
+
+    it 'renders the db_config flush section after the prometheus section' do
+      is_expected.to contain_file('/etc/crowdsec/config.yaml.local').with_content(
+        %r{\nprometheus:\n  enabled: true\n  level: full\n  listen_addr: 127\.0\.0\.1\n  listen_port: 6060\ndb_config:\n  flush:\n    max_items: 100000\n    max_age: 14d\n\z},
+      )
+    end
+  end
+
+  context 'with only max_age in db_flush' do
+    let(:params) { { manage_config_local: true, server_enabled: false, db_flush: { 'max_age' => '7d' } } }
+
+    it 'renders only max_age' do
+      is_expected.to contain_file('/etc/crowdsec/config.yaml.local').with_content(
+        %r{^api:\n  server:\n    enable: false\ndb_config:\n  flush:\n    max_age: 7d\n\z},
+      )
+    end
+  end
+
+  context 'with an invalid db_flush max_age' do
+    let(:params) { { manage_config_local: true, db_flush: { 'max_age' => '2w' } } }
+
+    it { is_expected.to compile.and_raise_error(%r{db_flush}) }
+  end
+
+  context 'with an empty db_flush' do
+    let(:params) { { manage_config_local: true, db_flush: {} } }
+
+    it { is_expected.to contain_file('/etc/crowdsec/config.yaml.local').without_content(%r{db_config}) }
+  end
+
+  context 'without db_flush (default)' do
+    let(:params) { { manage_config_local: true } }
+
+    it { is_expected.to contain_file('/etc/crowdsec/config.yaml.local').without_content(%r{db_config}) }
   end
 
   context 'with manage_config_local => false (default)' do

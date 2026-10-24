@@ -21,7 +21,7 @@ describe 'crowdsec::allowlist' do
         command: "/usr/bin/cscli allowlists create trusted --description 'Trusted networks'",
         unless: '/usr/bin/cscli allowlists list -o raw 2>/dev/null | cut -d, -f1 | grep -Fxq trusted',
         path: ['/usr/bin', '/bin'],
-        require: 'Service[crowdsec]',
+        require: 'Package[crowdsec]',
       )
     end
 

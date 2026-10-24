@@ -154,7 +154,7 @@ appsec_configs:
 
 Einzeln geht es auch direkt über den Defined Type `crowdsec::appsec::local_config` (dann den Namen selbst in `appsec_configs` eintragen – nicht nötig, wenn über die Klasse deklariert).
 
-Läuft die LAPI auf einem entfernten Host, prüft AppSec die Bouncer-Keys dort. Der CrowdSec-Default von 200 ms ist dafür oft zu knapp; mit `auth_timeout` lässt er sich erhöhen:
+Läuft die LAPI auf einem entfernten Host, prüft AppSec die Bouncer-Keys dort. Der CrowdSec-Default von 200 ms ist dafür oft zu knapp; mit `auth_timeout` lässt er sich erhöhen (erst ab CrowdSec 1.8.0 – ältere Versionen starten mit dieser Option nicht):
 
 ```puppet
 class { 'crowdsec::appsec':
@@ -263,12 +263,18 @@ Vollständige Hiera-Beispiele liegen unter `examples/hiera/nodes/`. Der OpenRest
 
 `crowdsec::lapi` kann `/etc/crowdsec/config.yaml.local` verwalten (`manage_config_local: true`). Damit lässt sich der lokale API-Server auf reinen Agent-Nodes abschalten bzw. auf dem zentralen Host mit TLS auf allen Interfaces betreiben. Zusätzlich neutralisiert `crowdsec::manage_default_acquisition: true` die bei der Installation auto-generierte `acquis.yaml`, damit Logs, die per `crowdsec::acquisition::file` in `acquis.d/` deklariert sind, nicht doppelt gezählt werden.
 
+Mit vielen Agents reicht der Paket-Default `db_config.flush.max_items: 5000` auf dem zentralen Host oft nur für wenige Tage Alert-Historie; `crowdsec::lapi::db_flush` setzt `max_items`/`max_age` in `config.yaml.local` (übrige `db_config`-Werte bleiben, CrowdSec merged die Datei).
+
 ```yaml
 # Zentraler LAPI-Host
 crowdsec::lapi::manage_config_local: true
 crowdsec::lapi::server_listen_uri: '[::]:8080'
 crowdsec::lapi::server_tls_cert_file: '/etc/letsencrypt/live/lapi.example.com/fullchain.pem'
 crowdsec::lapi::server_tls_key_file: '/etc/letsencrypt/live/lapi.example.com/privkey.pem'
+# Alerts 14 Tage behalten (Paket-Default: 5000 Alerts, 7d)
+crowdsec::lapi::db_flush:
+  max_items: 100000
+  max_age: '14d'
 
 # Agent-Node
 crowdsec::lapi::manage_config_local: true

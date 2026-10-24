@@ -30,7 +30,11 @@ define crowdsec::machine (
   exec { "crowdsec-machine-add-${machine_name}":
     command => "${cscli_path} machines add ${machine_name} --password ${quoted_password} -f - >/dev/null",
     unless  => "${cscli_path} machines list -o raw 2>/dev/null | cut -d, -f1 | grep -Fxq ${machine_name}",
-    require => Service['crowdsec'],
+    # cscli writes directly to the LAPI database, so the service does not
+    # have to run. Registering before (re)starting it avoids a deadlock when
+    # the local agent itself authenticates with these credentials.
+    require => Package['crowdsec'],
+    before  => Service['crowdsec'],
     path    => ['/usr/bin', '/bin'],
   }
 }

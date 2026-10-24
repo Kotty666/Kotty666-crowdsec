@@ -273,7 +273,7 @@ Default value: `'127.0.0.1:7422'`
 
 Data type: `Optional[Pattern[/\A[0-9]+(ms|s|m)\z/]]`
 
-Timeout for validating bouncer API keys against the LAPI (Go duration, e.g. `1s`). Raise it when the LAPI is remote; undef keeps the CrowdSec default (200ms).
+Timeout for validating bouncer API keys against the LAPI (Go duration, e.g. `1s`). Raise it when the LAPI is remote; undef keeps the CrowdSec default (200ms). Requires CrowdSec >= 1.8.0 (older versions refuse to start with it).
 
 Default value: `undef`
 
@@ -1145,6 +1145,15 @@ class { 'crowdsec::lapi':
 }
 ```
 
+##### Central LAPI keeping alerts for 14 days
+
+```puppet
+class { 'crowdsec::lapi':
+  manage_config_local => true,
+  db_flush            => { 'max_items' => 100000, 'max_age' => '14d' },
+}
+```
+
 #### Parameters
 
 The following parameters are available in the `crowdsec::lapi` class:
@@ -1158,6 +1167,8 @@ The following parameters are available in the `crowdsec::lapi` class:
 * [`server_enabled`](#-crowdsec--lapi--server_enabled)
 * [`server_tls_cert_file`](#-crowdsec--lapi--server_tls_cert_file)
 * [`server_tls_key_file`](#-crowdsec--lapi--server_tls_key_file)
+* [`prometheus`](#-crowdsec--lapi--prometheus)
+* [`db_flush`](#-crowdsec--lapi--db_flush)
 * [`cscli_path`](#-crowdsec--lapi--cscli_path)
 
 ##### <a name="-crowdsec--lapi--url"></a>`url`
@@ -1229,6 +1240,40 @@ Default value: `undef`
 Data type: `Optional[Stdlib::Absolutepath]`
 
 Optional TLS private key for the local API server (requires manage_config_local).
+
+Default value: `undef`
+
+##### <a name="-crowdsec--lapi--prometheus"></a>`prometheus`
+
+Data type:
+
+```puppet
+Optional[Struct[{
+    enabled     => Boolean,
+    level       => Enum['full', 'aggregated'],
+    listen_addr => Stdlib::IP::Address::Nosubnet,
+    listen_port => Stdlib::Port,
+  }]]
+```
+
+Optional Prometheus metrics settings rendered into config.yaml.local (requires manage_config_local); undef keeps the package defaults.
+
+Default value: `undef`
+
+##### <a name="-crowdsec--lapi--db_flush"></a>`db_flush`
+
+Data type:
+
+```puppet
+Optional[Struct[{
+    Optional[max_items] => Integer[1],
+    Optional[max_age]   => Pattern[/\A[0-9]+[smhd]\z/],
+  }]]
+```
+
+Optional alert retention of the LAPI database (`db_config.flush`) rendered into config.yaml.local
+(requires manage_config_local): `max_items` is the maximum number of alerts kept, `max_age` their maximum age
+(e.g. `14d`, units s/m/h/d). Unset keys and undef keep the package defaults (5000 alerts, 7d).
 
 Default value: `undef`
 

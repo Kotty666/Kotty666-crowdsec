@@ -3,6 +3,8 @@
   String                         $server_listen_uri,
   Optional[Stdlib::Absolutepath] $server_tls_cert_file,
   Optional[Stdlib::Absolutepath] $server_tls_key_file,
+  Optional[Hash]                 $prometheus,
+  Optional[Hash]                 $db_flush,
 | -%>
 # #####################################################################
 # ACHTUNG: Diese Datei wird von Puppet verwaltet!
@@ -24,4 +26,21 @@ api:
 <% } -%>
 <% } else { -%>
     enable: false
+<% } -%>
+<% if $prometheus { -%>
+prometheus:
+  enabled: <%= $prometheus['enabled'] %>
+  level: <%= $prometheus['level'] %>
+  listen_addr: <%= $prometheus['listen_addr'] %>
+  listen_port: <%= $prometheus['listen_port'] %>
+<% } -%>
+<% if $db_flush and !$db_flush.empty { -%>
+db_config:
+  flush:
+<% if $db_flush['max_items'] { -%>
+    max_items: <%= $db_flush['max_items'] %>
+<% } -%>
+<% if $db_flush['max_age'] { -%>
+    max_age: <%= $db_flush['max_age'] %>
+<% } -%>
 <% } -%>

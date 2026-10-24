@@ -7,7 +7,7 @@
 # starts, otherwise it fails with "unknown data source appsec".
 #
 # @param listen_addr Address and port used by the AppSec listener.
-# @param auth_timeout Timeout for validating bouncer API keys against the LAPI (Go duration, e.g. `1s`). Raise it when the LAPI is remote; undef keeps the CrowdSec default (200ms).
+# @param auth_timeout Timeout for validating bouncer API keys against the LAPI (Go duration, e.g. `1s`). Raise it when the LAPI is remote; undef keeps the CrowdSec default (200ms). Requires CrowdSec >= 1.8.0 (older versions refuse to start with it).
 # @param appsec_configs List of AppSec config names (`appsec-configs` hub items) to install.
 # @param appsec_rules List of AppSec rule names (`appsec-rules` hub items) to install.
 # @param local_appsec_configs Local AppSec configs keyed by config name; each value holds `crowdsec::appsec::local_config` parameters. Present entries are appended to `appsec_configs` in acquis.d/appsec.yaml (after the hub configs, so they can override them).
