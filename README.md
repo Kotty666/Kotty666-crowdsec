@@ -219,6 +219,34 @@ crowdsec::allowlist { 'office':
 }
 ```
 
+### `crowdsec::whitelist {}`
+
+Legt eine benannte Parser-Whitelist als eigene Datei `/etc/crowdsec/parsers/s02-enrich/puppet-whitelist-<name>.yaml` an (Parser-Name `crowdsec/puppet-whitelist-<name>`). Ergänzt `crowdsec::whitelists`, das unverändert bleibt. So lassen sich Whitelists nach Zweck trennen und in `cscli explain` bzw. in den Logs unterscheiden.
+
+CrowdSec verknüpft `ip`, `cidr` und `expression` einer Whitelist mit ODER. Mit `condition` werden die Adressen aus `ips` stattdessen zu einer Expression `(<Quell-IP passt>) && (<condition>)` zusammengefasst – z. B. für Crawler, die nur zusammen mit ihrem User-Agent durchgelassen werden sollen.
+
+```puppet
+crowdsec::whitelist { 'monitoring':
+  ips => ['192.0.2.0/28', '2001:db8::10'],
+}
+
+crowdsec::whitelist { 'crawler':
+  ips       => ['192.0.2.10', '192.0.2.11'],
+  condition => "evt.Parsed.http_user_agent contains 'ExampleBot'",
+  reason    => 'ExampleBot crawler (ip + user agent)',
+}
+```
+
+Per Hiera über die Hauptklasse:
+
+```yaml
+crowdsec::named_whitelists:
+  crawler:
+    ips:
+      - '192.0.2.10'
+    condition: "evt.Parsed.http_user_agent contains 'ExampleBot'"
+```
+
 ### Zentrale LAPI mit entfernten Bouncern via Hiera
 
 Auf dem CrowdSec-Server kann die Local API für andere Systeme erreichbar gemacht und die Bouncer-Keys deklarativ registriert werden. Beschränke TCP/8080 zusätzlich per Firewall auf die Bouncer-Hosts und lege die Keys in Produktion verschlüsselt ab (z. B. `hiera-eyaml`).

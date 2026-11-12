@@ -28,6 +28,7 @@
 * [`crowdsec::parser`](#crowdsec--parser): Installs a CrowdSec parser using `cscli`.
 * [`crowdsec::postoverflow`](#crowdsec--postoverflow): Installs a CrowdSec postoverflow using `cscli`.
 * [`crowdsec::scenario`](#crowdsec--scenario): Installs a CrowdSec scenario using `cscli`.
+* [`crowdsec::whitelist`](#crowdsec--whitelist): Manages a named enrichment-stage CrowdSec parser whitelist.
 
 ### Data types
 
@@ -53,6 +54,7 @@ The following parameters are available in the `crowdsec` class:
 * [`scenarios`](#-crowdsec--scenarios)
 * [`postoverflows`](#-crowdsec--postoverflows)
 * [`whitelists`](#-crowdsec--whitelists)
+* [`named_whitelists`](#-crowdsec--named_whitelists)
 * [`console_enroll_key`](#-crowdsec--console_enroll_key)
 * [`manage_nginx_acquisition`](#-crowdsec--manage_nginx_acquisition)
 * [`nginx_access_log`](#-crowdsec--nginx_access_log)
@@ -145,6 +147,15 @@ Data type: `Array[String]`
 IPs, CIDR ranges, or CrowdSec expressions to whitelist globally. Rendered as a real enrichment-stage parser whitelist under /etc/crowdsec/parsers/s02-enrich/ and fully managed: manual edits are reverted and emptying the list removes the file.
 
 Default value: `[]`
+
+##### <a name="-crowdsec--named_whitelists"></a>`named_whitelists`
+
+Data type: `Hash[String[1], Hash]`
+
+Hash of whitelist names to parameters of `crowdsec::whitelist`. Each entry gets its own
+enrichment-stage parser file, in addition to the global `whitelists` list.
+
+Default value: `{}`
 
 ##### <a name="-crowdsec--console_enroll_key"></a>`console_enroll_key`
 
@@ -1770,6 +1781,114 @@ Data type: `String`
 Path to the cscli binary (defaults to crowdsec::cscli_path from Hiera).
 
 Default value: `'/usr/bin/cscli'`
+
+### <a name="crowdsec--whitelist"></a>`crowdsec::whitelist`
+
+Each resource renders its own parser file
+`/etc/crowdsec/parsers/s02-enrich/puppet-whitelist-<name>.yaml`, so whitelists
+for different purposes stay separate and show up under their own parser name
+(`crowdsec/puppet-whitelist-<name>`) in `cscli explain` and in the logs.
+Events matching the whitelist are dropped before any alert or decision is
+created. It complements the global `crowdsec::whitelists` list, which keeps
+working unchanged.
+
+CrowdSec ORs the `ip`, `cidr` and `expression` entries of a whitelist. To
+whitelist addresses only when an additional condition holds (for example a
+crawler that must also send its user agent), set `condition`: the addresses
+are then folded into a single expression
+`(<source ip matches>) && (<condition>)` instead of being listed as plain
+`ip`/`cidr` entries.
+
+#### Examples
+
+##### Whitelist a monitoring network
+
+```puppet
+crowdsec::whitelist { 'monitoring':
+  ips => ['192.0.2.0/28', '2001:db8::10'],
+}
+```
+
+##### Whitelist crawler addresses only together with the crawler user agent
+
+```puppet
+crowdsec::whitelist { 'crawler':
+  ips       => ['192.0.2.10', '192.0.2.11'],
+  condition => "evt.Parsed.http_user_agent contains 'ExampleBot'",
+  reason    => 'ExampleBot crawler (ip + user agent)',
+}
+```
+
+#### Parameters
+
+The following parameters are available in the `crowdsec::whitelist` defined type:
+
+* [`ensure`](#-crowdsec--whitelist--ensure)
+* [`whitelist_name`](#-crowdsec--whitelist--whitelist_name)
+* [`ips`](#-crowdsec--whitelist--ips)
+* [`condition`](#-crowdsec--whitelist--condition)
+* [`expressions`](#-crowdsec--whitelist--expressions)
+* [`reason`](#-crowdsec--whitelist--reason)
+* [`description`](#-crowdsec--whitelist--description)
+
+##### <a name="-crowdsec--whitelist--ensure"></a>`ensure`
+
+Data type: `Enum['present', 'absent']`
+
+Whether the whitelist parser file is present or removed.
+
+Default value: `'present'`
+
+##### <a name="-crowdsec--whitelist--whitelist_name"></a>`whitelist_name`
+
+Data type: `Pattern[/\A[A-Za-z0-9_.-]+\z/]`
+
+Name of the whitelist, used in the file and parser name. Defaults to the title.
+
+Default value: `$title`
+
+##### <a name="-crowdsec--whitelist--ips"></a>`ips`
+
+Data type: `Array[Stdlib::IP::Address]`
+
+IPv4/IPv6 addresses or CIDR ranges. Write addresses in canonical form, they
+are compared as strings when `condition` is set.
+
+Default value: `[]`
+
+##### <a name="-crowdsec--whitelist--condition"></a>`condition`
+
+Data type: `Optional[String[1]]`
+
+Optional CrowdSec expression that must be true in addition to the source
+address matching `ips`. Requires `ips`.
+
+Default value: `undef`
+
+##### <a name="-crowdsec--whitelist--expressions"></a>`expressions`
+
+Data type: `Array[String[1]]`
+
+Additional CrowdSec expressions, each whitelisting on its own (ORed with the
+rest of the whitelist).
+
+Default value: `[]`
+
+##### <a name="-crowdsec--whitelist--reason"></a>`reason`
+
+Data type: `String[1]`
+
+Reason recorded by CrowdSec for whitelisted events.
+
+Default value: `"puppet-managed whitelist ${title}"`
+
+##### <a name="-crowdsec--whitelist--description"></a>`description`
+
+Data type: `String[1]`
+
+Description of the parser.
+
+Default value: `"Puppet-managed whitelist ${title} (crowdsec::whitelist)"`
 
 ## Data types
 
