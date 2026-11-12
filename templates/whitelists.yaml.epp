@@ -1,20 +1,27 @@
-<%- | Array[String] $ips, Array[String] $cidrs, Array[String] $expressions | -%>
+<%- | Array[String] $ips,
+      Array[String] $cidrs,
+      Array[String] $expressions,
+      String        $parser_name = 'crowdsec/puppet-whitelists',
+      String        $description = 'Puppet-managed whitelist (crowdsec::whitelists)',
+      String        $reason      = 'puppet-managed whitelist',
+      String        $managed_by  = 'crowdsec::whitelists',
+| -%>
 # #####################################################################
 # ACHTUNG: Diese Datei wird von Puppet verwaltet!
 # Manuelle Aenderungen werden beim naechsten Puppet-Lauf ueberschrieben.
-# Aenderungen bitte ueber Hiera (crowdsec::whitelists) vornehmen.
+# Aenderungen bitte ueber Hiera (<%= $managed_by %>) vornehmen.
 #
-# WARNING: This file is managed by Puppet (crowdsec::whitelists).
+# WARNING: This file is managed by Puppet (<%= $managed_by %>).
 # DO NOT EDIT manually - changes are reverted on the next Puppet run.
 # #####################################################################
 #
 # CrowdSec enrichment-stage whitelist parser. Events whose source matches an
 # entry below are whitelisted before any alert or decision is created, so the
 # listed hosts/ranges are never banned.
-name: crowdsec/puppet-whitelists
-description: "Puppet-managed whitelist (crowdsec::whitelists)"
+name: <%= $parser_name %>
+description: "<%= $description.regsubst('"', '\\"', 'G') %>"
 whitelist:
-  reason: "puppet-managed whitelist"
+  reason: "<%= $reason.regsubst('"', '\\"', 'G') %>"
 <% unless $ips.empty { -%>
   ip:
 <% $ips.each |$ip| { -%>

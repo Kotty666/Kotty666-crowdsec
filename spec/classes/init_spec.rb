@@ -100,6 +100,31 @@ describe 'crowdsec' do
         end
       end
 
+      context 'with named_whitelists' do
+        let(:params) do
+          {
+            whitelists: ['10.0.0.0/8'],
+            named_whitelists: {
+              'crawler' => {
+                'ips'       => ['192.0.2.10'],
+                'condition' => "evt.Parsed.http_user_agent contains 'ExampleBot'",
+              },
+            },
+          }
+        end
+
+        it { is_expected.to compile.with_all_deps }
+        it { is_expected.to contain_crowdsec__whitelist('crawler').with_ips(['192.0.2.10']) }
+        it { is_expected.to contain_file('/etc/crowdsec/parsers/s02-enrich/puppet-whitelist-crawler.yaml') }
+
+        it 'keeps the global whitelist file unchanged' do
+          is_expected.to contain_file('/etc/crowdsec/parsers/s02-enrich/puppet-whitelists.yaml')
+            .with_content(%r{^name: crowdsec/puppet-whitelists$})
+            .with_content(%r{^  reason: "puppet-managed whitelist"$})
+            .with_content(%r{Aenderungen bitte ueber Hiera \(crowdsec::whitelists\) vornehmen})
+        end
+      end
+
       context 'without whitelists' do
         it 'ensures the parser whitelist file is absent' do
           is_expected.to contain_file('/etc/crowdsec/parsers/s02-enrich/puppet-whitelists.yaml').with_ensure('absent')

@@ -1,4 +1,4 @@
-manifests/init.pp 238925d086291eee3de2e0570f65a363835c721f
+manifests/init.pp 9d254fb38ab46efe55875405aa262cdd4ac05da6
 manifests/lapi.pp eb6a688f5e39f20af2475c0d8dfcf187d31f716f
 manifests/repo.pp acbc060facfad04bf8bc8587749e66ddf29b7336
 manifests/appsec.pp 0bb75aae90d41070db00c416a40caa53d05f41f3
@@ -7,6 +7,7 @@ manifests/parser.pp a20ca1e15dfdaa247a35152132166759cfc92f3e
 manifests/machine.pp e2d77a21d158b116bdb57f9d08a99237f9e309ad
 manifests/scenario.pp 77b45c63fd2fd28316bf4d3a6404670d0fec7482
 manifests/allowlist.pp 8bdb50fedd51acdcddd52306f42883dbfb60a3ad
+manifests/whitelist.pp 5d06badf1f32d3a5b955abfb1fd48130ec2c50b2
 manifests/collection.pp 52911457049fef85091a97cd7a7393e486356c64
 manifests/appsec/rule.pp 4babfc04c29a4a92c2fd1301ca2df811503b4538
 manifests/postoverflow.pp 12a8a4e68b2d6dce2c46fcfb3cf32710b6a392ef

@@ -10,6 +10,9 @@
 # @param scenarios List of CrowdSec scenarios to install.
 # @param postoverflows List of CrowdSec postoverflows to install.
 # @param whitelists IPs, CIDR ranges, or CrowdSec expressions to whitelist globally. Rendered as a real enrichment-stage parser whitelist under /etc/crowdsec/parsers/s02-enrich/ and fully managed: manual edits are reverted and emptying the list removes the file.
+# @param named_whitelists
+#   Hash of whitelist names to parameters of `crowdsec::whitelist`. Each entry gets its own
+#   enrichment-stage parser file, in addition to the global `whitelists` list.
 # @param console_enroll_key Optional enrollment key for the CrowdSec console.
 # @param manage_nginx_acquisition Whether to manage log acquisition for Nginx.
 # @param nginx_access_log Path to the Nginx access log (used when nginx_logs and nginx_acquisitions are empty).
@@ -34,6 +37,7 @@ class crowdsec (
   Array[String]        $scenarios                = [],
   Array[String]        $postoverflows            = [],
   Array[String]        $whitelists               = [],
+  Hash[String[1], Hash] $named_whitelists         = {},
   Optional[String]     $console_enroll_key       = undef,
   Boolean              $manage_nginx_acquisition = false,
   String               $nginx_access_log         = '/var/log/nginx/access.log',
@@ -158,6 +162,12 @@ class crowdsec (
       }),
       require => $whitelist_require,
       notify  => $whitelist_notify,
+    }
+  }
+
+  $named_whitelists.each |String[1] $wl_name, Hash $wl_params| {
+    crowdsec::whitelist { $wl_name:
+      * => $wl_params,
     }
   }
 
